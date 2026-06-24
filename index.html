@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DR2 Time Attack — Classement Communautaire</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500&family=Share+Tech+Mono&display=swap');
+  :root {
+    --red:#e23030;--red-dark:#a01f1f;--bg:#0d0d14;--bg2:#14141f;--bg3:#1c1c2e;--bg4:#24243a;
+    --border:#2a2a42;--border2:#3a3a58;--text:#e8e8f0;--text2:#9090b0;--text3:#5a5a78;
+    --gold:#f0a020;--silver:#a0a0b8;--bronze:#c07040;--green:#40c080;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* HEADER */
+  .site-header{background:var(--bg2);border-bottom:2px solid var(--red);padding:0 1.5rem;display:flex;align-items:stretch;justify-content:space-between;gap:1rem;}
+  .header-brand{display:flex;align-items:center;gap:14px;padding:1rem 0;}
+  .brand-icon{width:42px;height:42px;background:var(--red);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand-icon svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .brand-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;line-height:1;}
+  .brand-title span{color:var(--red);}
+  .brand-sub{font-size:10px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-top:3px;}
+  .header-actions{display:flex;align-items:center;gap:10px;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .live-label{font-size:11px;color:var(--green);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:5px;}
+
+  /* BUTTONS */
+  .btn-primary{background:var(--red);color:#fff;border:none;border-radius:4px;padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:6px;}
+  .btn-primary:hover{background:var(--red-dark);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary{background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:4px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:500;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+  .btn-secondary:hover{border-color:var(--text2);color:var(--text);}
+
+  /* NAV */
+  .main-nav{background:var(--bg3);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;overflow-x:auto;}
+  .nav-item{padding:11px 18px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
+  .nav-item:hover{color:var(--text2);}
+  .nav-item.active{color:var(--red);border-bottom-color:var(--red);}
+
+  /* LAYOUT */
+  .main-layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 110px);}
+  .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:1.25rem;display:flex;flex-direction:column;gap:1.5rem;}
+  .sidebar-section-title{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .filter-group{display:flex;flex-direction:column;gap:6px;}
+  .filter-select{background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;width:100%;transition:border-color .15s;}
+  .filter-select:focus{outline:none;border-color:var(--red);}
+  .filter-select option{background:var(--bg3);}
+  .country-list{display:flex;flex-direction:column;gap:4px;}
+  .country-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:4px;cursor:pointer;transition:background .1s;font-size:13px;color:var(--text2);}
+  .country-item:hover{background:var(--bg4);}
+  .country-item.active{background:var(--bg4);color:var(--text);}
+  .country-flag{font-size:16px;width:22px;text-align:center;}
+  .country-name{flex:1;}
+  .country-count{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);background:var(--bg);padding:1px 5px;border-radius:3px;}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;}
+  .stat-value{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1;}
+  .stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+
+  /* HERO BANNER */
+  .hero-banner{position:relative;height:200px;overflow:hidden;border-bottom:2px solid var(--border);}
+  .hero-svg{width:100%;height:100%;}
+  .hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(13,13,20,.92) 0%,rgba(13,13,20,.5) 60%,rgba(13,13,20,.1) 100%);}
+  .hero-text{position:absolute;top:50%;left:2rem;transform:translateY(-50%);}
+  .hero-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--red);margin-bottom:6px;}
+  .hero-title{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:700;letter-spacing:2px;text-transform:uppercase;line-height:1;}
+  .hero-sub{font-size:13px;color:var(--text2);margin-top:6px;}
+
+  /* MAIN CONTENT */
+  .main-content{padding:1.5rem;}
+  .content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px;}
+  .content-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:10px;}
+
+  /* LEADERBOARD */
+  .leaderboard{width:100%;border-collapse:collapse;margin-top:6px;}
+  .leaderboard thead tr{background:var(--bg3);border-bottom:1px solid var(--border);}
+  .leaderboard thead th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:8px 12px;text-align:left;}
+  .leaderboard thead th.right{text-align:right;}
+  .leaderboard tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+  .leaderboard tbody tr:hover{background:var(--bg3);}
+  .leaderboard tbody tr.rank-1{border-left:3px solid var(--gold);}
+  .leaderboard tbody tr.rank-2{border-left:3px solid var(--silver);}
+  .leaderboard tbody tr.rank-3{border-left:3px solid var(--bronze);}
+  .leaderboard tbody td{padding:11px 12px;}
+  .rank-num{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;min-width:32px;color:var(--text3);}
+  .rank-1 .rank-num{color:var(--gold);}
+  .rank-2 .rank-num{color:var(--silver);}
+  .rank-3 .rank-num{color:var(--bronze);}
+  .player-cell{display:flex;align-items:center;gap:10px;}
+  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;flex-shrink:0;}
+  .player-name{font-weight:500;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px;}
+  .player-car{font-size:11px;color:var(--text3);margin-top:2px;}
+  .car-badge{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;padding:2px 8px;border-radius:3px;text-transform:uppercase;}
+  .class-r5{background:rgba(66,120,200,.2);color:#7090e0;border:1px solid rgba(66,120,200,.3);}
+  .class-wrc{background:rgba(200,50,50,.2);color:#e07070;border:1px solid rgba(200,50,50,.3);}
+  .class-grpb{background:rgba(200,140,30,.2);color:#e0a040;border:1px solid rgba(200,140,30,.3);}
+  .class-r2{background:rgba(60,160,100,.2);color:#60c880;border:1px solid rgba(60,160,100,.3);}
+  .class-other{background:rgba(120,80,180,.2);color:#a080d0;border:1px solid rgba(120,80,180,.3);}
+  .time-cell{text-align:right;}
+  .time-val{font-family:'Share Tech Mono',monospace;font-size:17px;color:var(--text);}
+  .time-delta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);margin-top:2px;}
+  .time-delta.gap{color:#e07070;}
+  .date-cell{font-size:12px;color:var(--text3);text-align:right;}
+
+  /* SECTION EYEBROW */
+  .section-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:1rem;}
+  .eyebrow-line{flex:1;height:1px;background:var(--border);}
+  .eyebrow-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+
+  /* PODIUM */
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:1.5rem;}
+  .podium-slot{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;max-width:140px;}
+  .podium-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;border:2px solid transparent;}
+  .podium-slot.p1 .podium-avatar{border-color:var(--gold);}
+  .podium-slot.p2 .podium-avatar{border-color:var(--silver);}
+  .podium-slot.p3 .podium-avatar{border-color:var(--bronze);}
+  .podium-name{font-size:13px;font-weight:500;text-align:center;}
+  .podium-time{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text2);}
+  .podium-bar{width:100%;border-radius:3px 3px 0 0;display:flex;align-items:center;justify-content:center;padding-top:8px;}
+  .podium-bar-rank{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;}
+  .podium-slot.p1 .podium-bar{height:80px;background:rgba(240,160,32,.15);border:1px solid rgba(240,160,32,.3);}
+  .podium-slot.p1 .podium-bar-rank{color:var(--gold);}
+  .podium-slot.p2 .podium-bar{height:58px;background:rgba(160,160,184,.1);border:1px solid rgba(160,160,184,.2);}
+  .podium-slot.p2 .podium-bar-rank{color:var(--silver);}
+  .podium-slot.p3 .podium-bar{height:42px;background:rgba(192,112,64,.1);border:1px solid rgba(192,112,64,.2);}
+  .podium-slot.p3 .podium-bar-rank{color:var(--bronze);}
+
+  /* SPECIAL CARDS */
+  .special-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:1.5rem;}
+  .special-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px 14px;cursor:pointer;transition:all .15s;}
+  .special-card:hover{border-color:var(--border2);}
+  .special-card-flag{font-size:20px;margin-bottom:6px;}
+  .special-card-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text);}
+  .special-card-country{font-size:11px;color:var(--text3);margin-top:2px;}
+  .special-card-meta{display:flex;gap:10px;margin-top:8px;font-size:10px;color:var(--text3);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;}
+  .special-record{margin-top:8px;display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);}
+  .special-record-label{font-family:'Barlow',sans-serif;font-size:10px;color:var(--text3);}
+
+  /* PILOTS */
+  .pilots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+  .pilot-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px;cursor:pointer;transition:border-color .15s;}
+  .pilot-card:hover{border-color:var(--border2);}
+  .pilot-card-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;}
+  .pilot-card-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:6px;}
+  .pilot-card-stats{margin-top:10px;display:flex;gap:14px;}
+  .pilot-stat-val{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:var(--red);}
+  .pilot-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+
+  /* ── HIGHLIGHTS ── */
+  .highlights-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.25rem;}
+  .hl-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .hl-card-header{position:relative;height:130px;overflow:hidden;}
+  .hl-card-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,20,.1) 0%,rgba(13,13,20,.85) 100%);}
+  .hl-card-title{position:absolute;bottom:12px;left:14px;right:14px;}
+  .hl-card-flag{font-size:20px;line-height:1;}
+  .hl-card-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;line-height:1;margin-top:2px;}
+  .hl-card-country{font-size:11px;color:var(--text2);margin-top:2px;}
+  .hl-card-meta{display:flex;gap:8px;margin-top:4px;}
+  .hl-meta-chip{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:rgba(226,48,48,.2);color:var(--red);border:1px solid rgba(226,48,48,.3);}
+  .hl-podium{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+  .hl-entry{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:4px;background:var(--bg3);}
+  .hl-entry.hl-gold{border-left:3px solid var(--gold);}
+  .hl-entry.hl-silver{border-left:3px solid var(--silver);}
+  .hl-entry.hl-bronze{border-left:3px solid var(--bronze);}
+  .hl-rank{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;min-width:20px;}
+  .hl-gold .hl-rank{color:var(--gold);}
+  .hl-silver .hl-rank{color:var(--silver);}
+  .hl-bronze .hl-rank{color:var(--bronze);}
+  .hl-info{flex:1;min-width:0;}
+  .hl-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hl-car{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hl-time{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--text);text-align:right;}
+  .hl-delta{font-family:'Share Tech Mono',monospace;font-size:10px;color:#e07070;text-align:right;margin-top:1px;}
+  .hl-empty{text-align:center;padding:3rem;color:var(--text3);}
+  .hl-activity-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+  .hl-activity-label{flex:1;}
+  .hl-activity-count{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text2);}
+  .hl-bar-track{flex:2;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .hl-bar-fill{height:100%;background:var(--red);border-radius:2px;transition:width .4s;}
+
+  /* TABS */
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--red);border-radius:6px;width:100%;max-width:520px;padding:1.5rem;}
+  .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:1.25rem;color:var(--text);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-group{display:flex;flex-direction:column;gap:5px;}
+  .form-group.full{grid-column:1/-1;}
+  .form-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
+  .form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:9px 11px;font-family:'Barlow',sans-serif;font-size:13px;width:100%;transition:border-color .15s;}
+  .form-input:focus,.form-select:focus{outline:none;border-color:var(--red);}
+  .form-select option{background:var(--bg3);}
+  .form-input::placeholder{color:var(--text3);}
+  .time-input-group{display:flex;align-items:center;gap:6px;}
+  .time-sep{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--text3);flex-shrink:0;}
+  .time-part{background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:9px 8px;font-family:'Share Tech Mono',monospace;font-size:16px;text-align:center;transition:border-color .15s;}
+  .time-part:focus{outline:none;border-color:var(--red);}
+  .time-part.mm{width:52px;}
+  .time-part.ss{width:52px;}
+  .time-part.ms{width:62px;}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);}
+  .msg-success{display:none;background:rgba(40,160,90,.1);border:1px solid rgba(40,160,90,.3);border-radius:4px;color:var(--green);padding:10px 14px;font-size:13px;margin-top:12px;text-align:center;}
+  .msg-error{display:none;background:rgba(200,50,50,.1);border:1px solid rgba(200,50,50,.3);border-radius:4px;color:#e07070;padding:10px 14px;font-size:13px;margin-top:12px;text-align:center;}
+  .loading{display:flex;align-items:center;justify-content:center;padding:3rem;gap:10px;color:var(--text3);font-size:13px;}
+  .spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  @media(max-width:768px){
+    .main-layout{grid-template-columns:1fr;}
+    .sidebar{border-right:none;border-bottom:1px solid var(--border);}
+    .form-grid{grid-template-columns:1fr;}
+    .highlights-grid{grid-template-columns:1fr;}
+    .leaderboard thead th:nth-child(3),.leaderboard tbody td:nth-child(3){display:none;}
+  }  /* HISTORIQUE */
+  .hist-mode-btn.active{border-color:var(--red)!important;color:var(--red)!important;background:rgba(226,48,48,.08);}
+  .hist-timeline{display:flex;flex-direction:column;gap:0;}
+  .hist-group{margin-bottom:1.5rem;}
+  .hist-group-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .hist-group-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text);}
+  .hist-group-sub{font-size:11px;color:var(--text3);}
+  .hist-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-left:2px solid var(--border2);position:relative;margin-left:8px;}
+  .hist-item::before{content:'';position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--border2);}
+  .hist-item.is-best::before{background:var(--gold);box-shadow:0 0 0 3px rgba(240,160,32,.2);}
+  .hist-item.is-best{border-left-color:var(--gold);}
+  .hist-date{font-size:11px;color:var(--text3);min-width:60px;font-family:'Share Tech Mono',monospace;}
+  .hist-time-val{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--text);flex:1;}
+  .hist-time-val.best-tag::after{content:'★ Record perso';font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--gold);margin-left:8px;letter-spacing:1px;text-transform:uppercase;}
+  .hist-delta-tag{font-family:'Share Tech Mono',monospace;font-size:12px;padding:2px 8px;border-radius:3px;}
+  .hist-delta-tag.improve{background:rgba(40,160,90,.15);color:var(--green);}
+  .hist-delta-tag.worse{background:rgba(200,50,50,.15);color:#e07070;}
+  .hist-meta-line{font-size:11px;color:var(--text3);margin-top:1px;}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="brand-title">DIRT RALLY <span>2.0</span></div>
+      <div class="brand-sub">Time Attack · Classement Communautaire</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="live-label"><div class="live-dot"></div>Live</div>
+    <button class="btn-secondary" onclick="openAdminPanel()">⚙ Admin</button>
+    <button class="btn-primary" onclick="openSubmitModal()">+ Soumettre un temps</button>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="main-nav">
+  <div class="nav-item active" onclick="switchTab('highlights',this)">✦ Highlights</div>
+  <div class="nav-item" onclick="switchTab('classement',this)">Classement</div>
+  <div class="nav-item" onclick="switchTab('speciales',this)">Spéciales</div>
+  <div class="nav-item" onclick="switchTab('pilotes',this)">Pilotes</div>
+  <div class="nav-item" onclick="switchTab('historique',this)">Historique</div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="main-layout" id="main-layout">
+  <aside class="sidebar" id="main-sidebar">
+    <div>
+      <div class="sidebar-section-title">Filtres</div>
+      <div class="filter-group">
+        <select class="filter-select" id="filter-country" onchange="applyFilters()">
+          <option value="">🌍 Tous les pays</option>
+        </select>
+        <select class="filter-select" id="filter-special" onchange="applyFilters()">
+          <option value="">📍 Toutes les spéciales</option>
+        </select>
+        <select class="filter-select" id="filter-class" onchange="applyFilters()">
+          <option value="">🚗 Toutes les classes</option>
+          <option value="H1">H1</option>
+          <option value="H2 FWD">H2 FWD</option>
+          <option value="H2 RWD">H2 RWD</option>
+          <option value="H3">H3</option>
+          <option value="F2 Kit Car">F2 Kit Car</option>
+          <option value="Groupe B RWD">Groupe B RWD</option>
+          <option value="Groupe B AWD">Groupe B AWD</option>
+          <option value="R2">R2</option>
+          <option value="Groupe A">Groupe A</option>
+          <option value="NR4/R4">NR4/R4</option>
+          <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+          <option value="R5">R5</option>
+          <option value="Rally GT">Rally GT</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <div class="sidebar-section-title">Pays</div>
+      <div class="country-list" id="country-list"></div>
+    </div>
+    <div>
+      <div class="sidebar-section-title">Stats globales</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="stat-temps">—</div><div class="stat-label">Temps</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-pilotes">—</div><div class="stat-label">Pilotes</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-speciales">—</div><div class="stat-label">Spéciales</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-pays">—</div><div class="stat-label">Pays</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- ══ TAB HIGHLIGHTS ══ -->
+    <div class="tab-content active" id="tab-highlights">
+      <div class="hero-banner" style="margin:-1.5rem -1.5rem 1.5rem;">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=80&fit=crop&crop=center" alt="Rally car action" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 50%;" onerror="this.src='https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=80&fit=crop'">
+        <div class="hero-overlay"></div>
+        <div class="hero-text">
+          <div class="hero-label">Communauté · GOTY Edition</div>
+          <div class="hero-title">Highlights</div>
+          <div class="hero-sub">Spéciales · Pilotes · Records</div>
+        </div>
+      </div>
+
+      <div id="highlights-loading" class="loading"><div class="spinner"></div>Calcul des highlights…</div>
+      <div id="highlights-content" style="display:none;">
+
+        <!-- Podiums pilotes -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;" id="pilot-podiums-grid">
+          <!-- Podium par nombre de temps -->
+          <div class="hl-card">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+              <span style="font-size:20px;">🎮</span>
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Pilotes les plus actifs</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:1px;">Par nombre de temps soumis</div>
+              </div>
+            </div>
+            <div class="hl-podium" id="podium-activite"></div>
+          </div>
+          <!-- Podium par victoires -->
+          <div class="hl-card">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+              <span style="font-size:20px;">🏆</span>
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Pilotes les plus rapides</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:1px;">Par nombre de 1ères places</div>
+              </div>
+            </div>
+            <div class="hl-podium" id="podium-victoires"></div>
+          </div>
+        </div>
+
+        <!-- Top 4 spéciales -->
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Top 4 spéciales les plus disputées</div><div class="eyebrow-line"></div></div>
+        <div class="highlights-grid" id="highlights-grid"></div>
+      </div>
+      <div id="highlights-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:40px;margin-bottom:12px;">🏁</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps soumis pour l'instant</div>
+        <div style="font-size:13px;margin-top:6px;">Les highlights apparaîtront dès que des temps auront été enregistrés.</div>
+        <button class="btn-primary" style="margin:1rem auto 0;display:flex;" onclick="openSubmitModal()">+ Soumettre le premier temps</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB CLASSEMENT ══ -->
+    <div class="tab-content" id="tab-classement">
+      <div class="content-header">
+        <div class="content-title">
+          <span id="leaderboard-flag">🏁</span>
+          <span id="leaderboard-name">Classement général</span>
+        </div>
+        <button class="btn-secondary" onclick="loadData()">↻ Actualiser</button>
+      </div>
+      <div id="podium-section" style="display:none;margin-bottom:1.5rem;">
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium</div><div class="eyebrow-line"></div></div>
+        <div class="podium" id="podium"></div>
+      </div>
+      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Tous les temps</div><div class="eyebrow-line"></div></div>
+      <div id="leaderboard-loading" class="loading"><div class="spinner"></div>Chargement…</div>
+      <table class="leaderboard" id="leaderboard-table" style="display:none;">
+        <thead><tr>
+          <th>#</th><th>Pilote</th><th>Voiture</th><th>Classe</th><th>Spéciale</th>
+          <th class="right">Temps</th><th class="right">Écart</th><th class="right">Date</th>
+        </tr></thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+      <div id="empty-state" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:40px;margin-bottom:12px;">🏁</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps pour ces filtres</div>
+        <button class="btn-primary" style="margin:1rem auto 0;display:flex;" onclick="openSubmitModal()">+ Soumettre un temps</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB SPÉCIALES ══ -->
+    <div class="tab-content" id="tab-speciales">
+      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Toutes les spéciales</div><div class="eyebrow-line"></div></div>
+      <div class="special-cards" id="speciales-grid"></div>
+      <div id="speciales-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:36px;margin-bottom:10px;">📍</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucune spéciale enregistrée</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB PILOTES ══ -->
+    <div class="tab-content" id="tab-pilotes">
+      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Pilotes de la communauté</div><div class="eyebrow-line"></div></div>
+      <div class="pilots-grid" id="pilots-grid"></div>
+    </div>
+
+    <!-- ══ TAB HISTORIQUE ══ -->
+    <div class="tab-content" id="tab-historique">
+      <div class="content-header">
+        <div class="content-title"><span>📈</span><span>Historique de progression</span></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:1.25rem;">
+        <button class="btn-secondary hist-mode-btn active" id="mode-btn-pilote" onclick="setHistMode('pilote')" style="border-color:var(--red);color:var(--red);">Par pilote</button>
+        <button class="btn-secondary hist-mode-btn" id="mode-btn-special" onclick="setHistMode('special')">Par spéciale</button>
+      </div>
+
+      <!-- Mode pilote -->
+      <div id="hist-mode-pilote">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1.25rem;">
+          <div class="form-group">
+            <label class="form-label">Pilote</label>
+            <select class="form-select" id="hist-select-pilote" onchange="renderHistorique()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Spéciale (optionnel)</label>
+            <select class="form-select" id="hist-select-pilote-special" onchange="renderHistorique()">
+              <option value="">Toutes les spéciales</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode spéciale -->
+      <div id="hist-mode-special" style="display:none;">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1.25rem;">
+          <div class="form-group">
+            <label class="form-label">Spéciale</label>
+            <select class="form-select" id="hist-select-special" onchange="updateHistPilotesForSpecial();renderHistorique()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pilote (optionnel)</label>
+            <select class="form-select" id="hist-select-special-pilote" onchange="renderHistorique()">
+              <option value="">Tous les pilotes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="hist-content"></div>
+      <div id="hist-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:36px;margin-bottom:10px;">📈</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun historique disponible</div>
+        <div style="font-size:13px;margin-top:4px;">Sélectionne un pilote ou une spéciale ayant des temps soumis.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL SOUMISSION -->
+<div class="modal-overlay" id="modal-submit">
+  <div class="modal">
+    <div class="modal-title">Soumettre un temps</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Pseudo</label>
+        <input class="form-input" id="inp-pseudo" type="text" placeholder="Ton pseudo" list="pseudo-list">
+        <datalist id="pseudo-list"></datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ton drapeau</label>
+        <select class="form-select" id="inp-flag">
+          <option value="🇫🇷">🇫🇷 France</option><option value="🇧🇪">🇧🇪 Belgique</option>
+          <option value="🇨🇭">🇨🇭 Suisse</option><option value="🇩🇪">🇩🇪 Allemagne</option>
+          <option value="🇬🇧">🇬🇧 Royaume-Uni</option><option value="🇮🇹">🇮🇹 Italie</option>
+          <option value="🇪🇸">🇪🇸 Espagne</option><option value="🇵🇱">🇵🇱 Pologne</option>
+          <option value="🇸🇪">🇸🇪 Suède</option><option value="🇫🇮">🇫🇮 Finlande</option>
+          <option value="🇺🇸">🇺🇸 États-Unis</option><option value="🇦🇺">🇦🇺 Australie</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pays / Rallye</label>
+        <select class="form-select" id="inp-rallye" onchange="updateSpecialesInModal()">
+          <option value="Argentine">Argentine 🇦🇷</option>
+          <option value="Australie">Australie 🇦🇺</option>
+          <option value="Écosse">Écosse 🏴󠁧󠁢󠁳󠁣󠁴󠁿</option>
+          <option value="Espagne">Espagne 🇪🇸</option>
+          <option value="Finlande">Finlande 🇫🇮</option>
+          <option value="Allemagne">Allemagne 🇩🇪</option>
+          <option value="Grèce">Grèce 🇬🇷</option>
+          <option value="Monte-Carlo">Monte-Carlo 🇲🇨</option>
+          <option value="Nouvelle-Zélande">Nouvelle-Zélande 🇳🇿</option>
+          <option value="Pays de Galles">Pays de Galles 🏴󠁧󠁢󠁷󠁬󠁳󠁿</option>
+          <option value="Pologne">Pologne 🇵🇱</option>
+          <option value="Suède">Suède 🇸🇪</option>
+          <option value="USA">USA 🇺🇸</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spéciale</label>
+        <select class="form-select" id="inp-special"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Classe</label>
+        <select class="form-select" id="inp-class" onchange="updateCarsForClass()">
+          <option value="H1">H1</option>
+          <option value="H2 FWD">H2 FWD</option>
+          <option value="H2 RWD">H2 RWD</option>
+          <option value="H3">H3</option>
+          <option value="F2 Kit Car">F2 Kit Car</option>
+          <option value="Groupe B RWD">Groupe B RWD</option>
+          <option value="Groupe B AWD">Groupe B AWD</option>
+          <option value="R2">R2</option>
+          <option value="Groupe A">Groupe A</option>
+          <option value="NR4/R4">NR4/R4</option>
+          <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+          <option value="R5">R5</option>
+          <option value="Rally GT">Rally GT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Voiture</label>
+        <select class="form-select" id="inp-car"></select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Temps (MM:SS.mmm)</label>
+        <div class="time-input-group">
+          <input class="time-part mm" id="inp-mm" type="number" min="0" max="99" placeholder="MM">
+          <span class="time-sep">:</span>
+          <input class="time-part ss" id="inp-ss" type="number" min="0" max="59" placeholder="SS">
+          <span class="time-sep">.</span>
+          <input class="time-part ms" id="inp-ms" type="number" min="0" max="999" placeholder="mmm">
+        </div>
+      </div>
+    </div>
+    <div class="msg-success" id="submit-success">✓ Temps enregistré et partagé avec la communauté !</div>
+    <div class="msg-error" id="submit-error"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSubmitModal()">Annuler</button>
+      <button class="btn-primary" id="btn-submit" onclick="submitTime()">Valider le temps</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADMIN -->
+<div class="modal-overlay" id="modal-admin">
+  <div class="modal">
+    <div class="modal-title">Administration</div>
+    <div class="sidebar-section-title" style="margin-bottom:8px;">Tous les temps (× pour supprimer)</div>
+    <div id="admin-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+    <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-secondary" style="color:#e07070;border-color:rgba(200,50,50,.4);" onclick="clearAll()">Tout effacer</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAdminPanel()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://gbuzlpcrgmittpuoihps.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdidXpscGNyZ21pdHRwdW9paHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NzA5MjIsImV4cCI6MjA5NzM0NjkyMn0.B1btN2pJt7OVnlMEVwCTaC37fnjDbGZux4z193DTxtU';
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const SPECIALES={
+  'Argentine':['Las Juntas','Camino a La Puerta','Camino de acantilados y rocas','El Rodeo','La Merced','Camino de acantilados y rocas inverso','Valle de los puentes','Valle de los puentes a la inversa','Miraflores','San Isidro','Camino a Coneta','Huillaprima'],
+  'Australie':['Mount Kaye Pass','Mount Kaye Pass Reverse','Rockton Plains','Yambulla Mountain Descent','Yambulla Mountain Ascent','Rockton Plains Reverse','Chandlers Creek','Chandlers Creek Reverse','Noorinbee Ridge Ascent','Taylor Farm Sprint','Bondi Forest','Noorinbee Ridge Descent'],
+  'Finlande':['Kontinjärvi','Hämelahti','Kailajärvi','Jyrkysjärvi','Naarajärvi','Paskuri','Kakaristo','Pitkäjärvi','Iso Oksjärvi','Järvenkylä','Kotajärvi','Oksala'],
+  'Allemagne':['Oberstein','Frauenberg','Waldaufstieg','Kreuzungsring Reverse','Kreuzungsring','Waldabstieg','Hammerstein','Ruschberg','Verbundsring','Innerer Feld-Sprint','Innerer Feld-Sprint (umgekehrt)','Verbundsring Reverse'],
+  'Grèce':['Anodou Farmakas','Kathodo Leontiou','Pomona Ekrixi','Fourkéta Kourva','Koryfi Dafni','Ampelonas Ormi','Perasma Platini','Tsiristra Théa','Ourea Spevsi','Pedines Epidaxi','Abies Koilada','Ypsona tou Dasos'],
+  'Monte-Carlo':['Pra d\'Alart','Col de Turini - Départ','Gordolon - Courte montée','Col de Turini - Sprint en descente','Col de Turini - Sprint en montée','Col de Turini - Descente','Vallée descendante','Route de Turini','Col de Turini - Départ en descente','Approche de Turini - Montée','Route de Turini - Descente','Route de Turini Montée'],
+  'Nouvelle-Zélande':['Te Awanga Forward','Ocean Beach','Te Awanga Sprint Forward','Ocean Beach Sprint Forward','Ocean Beach Sprint Reverse','Te Awanga Sprint Reverse','Waimarama Point Forward','Waimarama Point Reverse','Elsthorpe Sprint Forward','Waimarama Sprint Forward','Waimarama Sprint Reverse','Elsthorpe Sprint Reverse'],
+  'Pologne':['Zarobka','Zargorze','Kopina','Marynka','Borysik','Jozefin','Jezioro Rotcze','Zienki','Czarny Las','Lejno','Jagodno','Jezioro Lukie'],
+  'Espagne':['Comienzo De Bellrui','Final de Bellriu','Ascenso por Valle el Gualet','Vinedos dentro del valle Parra','Ascenso bosque Montverd','Salida desde Montverd','Centenera','Camino a Centenera','Descenso por carretera','Vinedos Dardenyà','Vinedos Dardenyà inversa','Subira por carretera'],
+  'Suède':['Ransbysäter','Norraaskoga','Älgsjön Sprint','Stor-jangen Sprint Reverse','Sprint de Stor-jangen','Skogsrallyt','Hamra','Lysvik','Elgsjön','Björklangen','Östra Hinnsjön','Älgsjön'],
+  'USA':['North Fork Pass','North Fork Pass Reverse','Hancock Creek Burst','Fuller Mountain Descent','Fuller Mountain Ascent','Fury Lake Depart','Beaver Creek Trail Forward','Beaver Creek Trail Reverse','Hancock Hill Sprint Forward','Tolt Valley Sprint Reverse','Tolt Valley Sprint Forward','Hancock Hill Sprint Reverse'],
+  'Pays de Galles':['Sweet Lamb','Geufron Forest','Pant Mawr','Bidno Moorland Reverse','Bidno Moorland','Pant Mawr Reverse','River Severn Valley','Bronfelen','Fferm Wynt','Dyffryn Afon Reverse','Dyffryn Afon','Fferm Wynt Reverse'],
+  'Écosse':['South Morningside','South Morningside Reverse','Old Butterstone Mir','Rosebank Farm','Rosebank Farm Reverse','Old Butterstone Mir Reverse','Newhouse Bridge','Newhouse Bridge Reverse','Glencastle Farm','Annbank Station','Annbank Station Reverse','Glencastle Farm Reverse']
+};
+const CARS_BY_CLASS={
+  'H1':['MINI Cooper S','Lancia Fulvia HF','Citroën DS21'],
+  'H2 FWD':['Peugeot 205 GTI','Volkswagen Golf GTI 16V'],
+  'H2 RWD':['Ford Escort Mk II','Fiat 131 Abarth Rally','Opel Kadett C GT/E','Alpine Renault A110 1600 S'],
+  'H3':['BMW E30 M3 Evo Rally','Lancia Stratos','Opel Ascona 400','Renault 5 Turbo','Ford Sierra Cosworth RS500','Datsun 240Z'],
+  'F2 Kit Car':['Volkswagen Golf Kit Car','Seat Ibiza Kit Car','Renault Clio RS S1600','Opel Corsa Super 1600','Peugeot 306 Maxi Kit Car'],
+  'Groupe B RWD':['Opel Manta 400','BMW 02 27 RWD'],
+  'Groupe B AWD':['Audi Sport Quattro S1 E2','MG Metro 6R4','Peugeot 205 T16 Evo 2','Lancia Delta S4','Ford RS200'],
+  'R2':['Ford Fiesta R2','Opel Adam R2','Peugeot 208 R2'],
+  'Groupe A':['Subaru Impreza 1995','Mitsubishi Lancer Evolution VI','Ford Escort RS Cosworth','Lancia Delta HF Integrale','Subaru Legacy RS'],
+  'NR4/R4':['Mitsubishi Lancer Evolution X','Subaru WRX STI NR4'],
+  '4WD jusqu\'à 2000':['Ford Focus RS WRC 2001','Ford Focus RS WRC 2007','Subaru Impreza WRC 2001','Subaru Impreza WRC 2008','Subaru Impreza S4 1997','Peugeot 206 WRC 2002','Škoda Fabia WRC 2005','Citroën C4 Rally'],
+  'R5':['Citroën C3 R5','Volkswagen Polo GTI R5','Ford Fiesta R5','Ford Fiesta R5 MkII','Peugeot 208 T16 R5','Škoda Fabia R5','Mitsubishi Space Star R5'],
+  'Rally GT':['Porsche 911 RGT Rally Spec','Chevrolet Camaro GT4.R','Ford Mustang GT4','Aston Martin V8 Vantage GT4','BMW M2 Competition']
+};
+const FLAGS={'Argentine':'🇦🇷','Australie':'🇦🇺','Finlande':'🇫🇮','Allemagne':'🇩🇪','Grèce':'🇬🇷','Monte-Carlo':'🇲🇨','Nouvelle-Zélande':'🇳🇿','Pologne':'🇵🇱','Espagne':'🇪🇸','Suède':'🇸🇪','USA':'🇺🇸','Pays de Galles':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Écosse':'🏴󠁧󠁢󠁳󠁣󠁴󠁿'};
+const SURFACES={'Monte-Carlo':'Asphalte','Allemagne':'Asphalte','Espagne':'Asphalte','Suède':'Neige','Écosse':'Gravière'};
+
+// Photos Unsplash — paysages par pays pour les cards highlights
+const HL_PHOTOS={
+  'Finlande':         'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80&fit=crop&crop=center',
+  'Pays de Galles':   'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=80&fit=crop&crop=center',
+  'Australie':        'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80&fit=crop&crop=center',
+  'Monte-Carlo':      'https://images.unsplash.com/photo-1464817739973-0128fe77aaa1?w=600&q=80&fit=crop&crop=center',
+  'Nouvelle-Zélande': 'https://images.unsplash.com/photo-1469854523086-cc02736b2a83?w=600&q=80&fit=crop&crop=center',
+  'Pologne':          'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80&fit=crop&crop=center',
+  'Argentine':        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80&fit=crop&crop=center',
+  'USA':              'https://images.unsplash.com/photo-1476067897447-d0c7e8b8afa7?w=600&q=80&fit=crop&crop=center',
+  'Suède':            'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=600&q=80&fit=crop&crop=center',
+  'Grèce':            'https://images.unsplash.com/photo-1555993539-1732b0258235?w=600&q=80&fit=crop&crop=center',
+  'Allemagne':        'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&q=80&fit=crop&crop=center',
+  'Espagne':          'https://images.unsplash.com/photo-1504019347908-b45f9b0b8dd5?w=600&q=80&fit=crop&crop=center',
+  'Écosse':           'https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&q=80&fit=crop&crop=center',
+  'default':          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80&fit=crop&crop=center'
+};
+
+const AVATAR_COLORS=[
+  {bg:'#1c3a6e',text:'#7aadee'},{bg:'#3a1c1c',text:'#ee7a7a'},{bg:'#1c3a2a',text:'#7aeea8'},
+  {bg:'#3a2e1c',text:'#eea87a'},{bg:'#2a1c3a',text:'#aa7aee'},{bg:'#1c3a38',text:'#7aeee8'},
+  {bg:'#3a1c30',text:'#ee7ac8'},{bg:'#2a2a1c',text:'#d0d07a'},{bg:'#1c2a3a',text:'#7ab0ee'},{bg:'#3a2a1c',text:'#eec07a'}
+];
+
+let allTimes=[];
+
+// Ne garde que le meilleur temps par pilote+spéciale+classe+voiture (pour les classements)
+function getBestTimes(times){
+  const best={};
+  (times||allTimes).forEach(t=>{
+    const key=`${t.pseudo}||${t.special}||${t.class}||${t.car}`;
+    if(!best[key]||t.time<best[key].time) best[key]=t;
+  });
+  return Object.values(best);
+}
+
+function getAvatarColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))&0xff;return AVATAR_COLORS[h%AVATAR_COLORS.length];}
+function getInitials(n){const w=n.trim().split(/\s+/);return w.length>=2?(w[0][0]+w[w.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+function formatTime(ms){const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),mil=ms%1000;return`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(mil).padStart(3,'0')}`;}
+function parseTime(mm,ss,mil){return(parseInt(mm)||0)*60000+(parseInt(ss)||0)*1000+(parseInt(mil)||0);}
+function formatDelta(ms){return ms<=0?'—':'+'+(ms/1000).toFixed(3);}
+function formatDate(iso){return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function getCarClass(cls){return{'R5':'class-r5','WRC':'class-wrc','Groupe B':'class-grpb','R2':'class-r2'}[cls]||'class-other';}
+
+async function loadData(){
+  document.getElementById('leaderboard-loading').style.display='flex';
+  document.getElementById('leaderboard-table').style.display='none';
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('highlights-loading').style.display='flex';
+  document.getElementById('highlights-content').style.display='none';
+  document.getElementById('highlights-empty').style.display='none';
+  const{data,error}=await db.from('times').select('*').order('time',{ascending:true});
+  if(error){document.getElementById('leaderboard-loading').innerHTML='<span style="color:#e07070">Erreur de connexion à Supabase.</span>';document.getElementById('highlights-loading').innerHTML='<span style="color:#e07070">Erreur de connexion.</span>';return;}
+  allTimes=data||[];
+  document.getElementById('leaderboard-loading').style.display='none';
+  document.getElementById('highlights-loading').style.display='none';
+  renderAll();
+}
+
+function getFiltered(){
+  let t=getBestTimes();
+  const c=document.getElementById('filter-country').value;
+  const s=document.getElementById('filter-special').value;
+  const cl=document.getElementById('filter-class').value;
+  if(c)t=t.filter(x=>x.pays===c);
+  if(s)t=t.filter(x=>x.special===s);
+  if(cl)t=t.filter(x=>x.class===cl);
+  return t;
+}
+
+function renderAll(){renderSidebar();renderHighlights();renderLeaderboard();renderSpeciales();renderPilotes();renderStats();populateHistoriqueSelectors();}
+
+function renderSidebar(){
+  const countries=[...new Set(allTimes.map(t=>t.pays))].sort();
+  const specials=[...new Set(allTimes.map(t=>t.special))].sort();
+  const selC=document.getElementById('filter-country'),selS=document.getElementById('filter-special');
+  const curC=selC.value,curS=selS.value;
+  selC.innerHTML='<option value="">🌍 Tous les pays</option>';
+  countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;selC.appendChild(o);});
+  selC.value=curC;
+  selS.innerHTML='<option value="">📍 Toutes les spéciales</option>';
+  specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;selS.appendChild(o);});
+  selS.value=curS;
+  const counts={};
+  allTimes.forEach(t=>{counts[t.pays]=(counts[t.pays]||0)+1;});
+  const list=document.getElementById('country-list');
+  list.innerHTML='';
+  Object.entries(counts).sort((a,b)=>b[1]-a[1]).forEach(([pays,count])=>{
+    const div=document.createElement('div');
+    div.className='country-item'+(selC.value===pays?' active':'');
+    div.innerHTML=`<span class="country-flag">${FLAGS[pays]||'🌍'}</span><span class="country-name">${pays}</span><span class="country-count">${count}</span>`;
+    div.onclick=()=>{selC.value=selC.value===pays?'':pays;applyFilters();};
+    list.appendChild(div);
+  });
+}
+
+function renderHighlights(){
+  const grid=document.getElementById('highlights-grid');
+  const content=document.getElementById('highlights-content');
+  const empty=document.getElementById('highlights-empty');
+  grid.innerHTML='';
+  if(!allTimes.length){empty.style.display='block';content.style.display='none';return;}
+  empty.style.display='none';content.style.display='block';
+  const bestTimes=getBestTimes();
+
+  // ── Voiture SVG réaliste ──
+  function carSVG(bodyColor, accentColor, w, h){
+    w=w||48; h=h||24;
+    return`<svg viewBox="0 0 60 28" width="${w}" height="${h}" style="flex-shrink:0;display:block;" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="27" rx="24" ry="2" fill="#000" opacity="0.25"/>
+      <path d="M5,20 L5,16 L8,14 L52,14 L55,16 L55,20Z" fill="${bodyColor}"/>
+      <path d="M12,14 L16,7 L22,5 L40,5 L46,7 L52,14Z" fill="${bodyColor}"/>
+      <path d="M18,7 L22,3 L38,3 L42,7Z" fill="${accentColor}" opacity="0.85"/>
+      <path d="M42,7 L46,7 L52,14 L44,14Z" fill="#1a3a5a" opacity="0.75"/>
+      <path d="M18,7 L14,7 L10,14 L18,14Z" fill="#1a3a5a" opacity="0.55"/>
+      <path d="M22,5 L40,5 L44,14 L18,14Z" fill="#1a3a5a" opacity="0.6"/>
+      <rect x="50" y="15" width="5" height="3" rx="1" fill="#ffe8a0"/>
+      <rect x="50" y="18" width="4" height="2" rx="1" fill="#ff6030" opacity="0.8"/>
+      <rect x="5" y="15" width="4" height="3" rx="1" fill="#cc2020"/>
+      <circle cx="44" cy="21" r="5.5" fill="#111" stroke="#555" stroke-width="1"/>
+      <circle cx="44" cy="21" r="3" fill="#222" stroke="#888" stroke-width="0.8"/>
+      <circle cx="44" cy="21" r="1" fill="#aaa"/>
+      <circle cx="16" cy="21" r="5.5" fill="#111" stroke="#555" stroke-width="1"/>
+      <circle cx="16" cy="21" r="3" fill="#222" stroke="#888" stroke-width="0.8"/>
+      <circle cx="16" cy="21" r="1" fill="#aaa"/>
+      <rect x="5" y="10" width="6" height="1.5" rx="0.5" fill="${accentColor}" opacity="0.9"/>
+      <rect x="6" y="11.5" width="1" height="3" fill="#888"/>
+      <rect x="9" y="11.5" width="1" height="3" fill="#888"/>
+      <rect x="46" y="10" width="4" height="2" rx="0.5" fill="#000" opacity="0.5"/>
+      <rect x="8" y="16" width="40" height="1.5" fill="${accentColor}" opacity="0.4"/>
+    </svg>`;
+  }
+
+  // ── Podium activité ──
+  const byPilotCount={};
+  allTimes.forEach(t=>{
+    if(!byPilotCount[t.pseudo])byPilotCount[t.pseudo]={flag:t.flag,count:0};
+    byPilotCount[t.pseudo].count++;
+  });
+  const topActifs=Object.entries(byPilotCount).sort((a,b)=>b[1].count-a[1].count).slice(0,3);
+  const podAct=document.getElementById('podium-activite');
+  podAct.innerHTML='';
+  if(!topActifs.length){podAct.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px;">Aucun pilote</div>';}
+  topActifs.forEach(([pseudo,data],i)=>{
+    const col=getAvatarColor(pseudo);
+    const rankClass=['hl-gold','hl-silver','hl-bronze'][i];
+    const div=document.createElement('div');
+    div.className=`hl-entry ${rankClass}`;
+    div.innerHTML=`<div class="hl-rank">${i+1}</div>${carSVG(col.bg,col.text,48,24)}<div class="hl-info"><div class="hl-name"><span>${data.flag}</span>${pseudo}</div></div><div class="hl-time">${data.count} temps</div>`;
+    podAct.appendChild(div);
+  });
+
+  // ── Podium victoires (sur meilleurs temps uniquement) ──
+  const byPilotWins={};
+  bestTimes.forEach(t=>{if(!byPilotWins[t.pseudo])byPilotWins[t.pseudo]={flag:t.flag,wins:0};});
+  const bySpecialClass={};
+  bestTimes.forEach(t=>{const key=`${t.special}||${t.class}`;if(!bySpecialClass[key]||t.time<bySpecialClass[key].time)bySpecialClass[key]=t;});
+  Object.values(bySpecialClass).forEach(t=>{if(byPilotWins[t.pseudo])byPilotWins[t.pseudo].wins++;});
+  const topVainqueurs=Object.entries(byPilotWins).filter(([,d])=>d.wins>0).sort((a,b)=>b[1].wins-a[1].wins).slice(0,3);
+  const podVic=document.getElementById('podium-victoires');
+  podVic.innerHTML='';
+  if(!topVainqueurs.length){podVic.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px;">Aucune victoire enregistrée</div>';}
+  topVainqueurs.forEach(([pseudo,data],i)=>{
+    const col=getAvatarColor(pseudo);
+    const rankClass=['hl-gold','hl-silver','hl-bronze'][i];
+    const div=document.createElement('div');
+    div.className=`hl-entry ${rankClass}`;
+    div.innerHTML=`<div class="hl-rank">${i+1}</div>${carSVG(col.bg,col.text,48,24)}<div class="hl-info"><div class="hl-name"><span>${data.flag}</span>${pseudo}</div></div><div class="hl-time">${data.wins} 🏆</div>`;
+    podVic.appendChild(div);
+  });
+
+  // ── Top 4 spéciales — encarts séparés par classe (meilleurs temps uniquement) ──
+  const bySpecial={};
+  bestTimes.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,times:[]};bySpecial[t.special].times.push(t);});
+  const top4=Object.entries(bySpecial).sort((a,b)=>b[1].times.length-a[1].times.length).slice(0,4);
+  const maxCount=top4[0]?top4[0][1].times.length:1;
+
+  top4.forEach(([special,data],idx)=>{
+    const pays=data.pays,flag=FLAGS[pays]||'🌍',surface=SURFACES[pays]||'Gravière';
+    const photo=HL_PHOTOS[pays]||HL_PHOTOS['default'];
+    const count=data.times.length,pct=Math.round((count/maxCount)*100);
+    const byClass={};
+    data.times.forEach(t=>{if(!byClass[t.class])byClass[t.class]=[];byClass[t.class].push(t);});
+    const classBlocks=Object.entries(byClass).sort((a,b)=>a[0].localeCompare(b[0])).map(([cls,times])=>{
+      const sorted=[...times].sort((a,b)=>a.time-b.time).slice(0,3);
+      const best=sorted[0].time;
+      const rows=sorted.map((t,i)=>{
+        const col=getAvatarColor(t.pseudo);
+        const rk=['hl-gold','hl-silver','hl-bronze'][i];
+        const delta=i===0?'':formatDelta(t.time-best);
+        return`<div class="hl-entry ${rk}" style="margin:3px 0;">
+          <div class="hl-rank">${i+1}</div>
+          ${carSVG(col.bg,col.text,40,20)}
+          <div class="hl-info"><div class="hl-name"><span>${t.flag}</span>${t.pseudo}</div><div class="hl-car">${t.car}</div></div>
+          <div><div class="hl-time">${formatTime(t.time)}</div>${delta?`<div class="hl-delta">${delta}</div>`:''}</div>
+        </div>`;
+      }).join('');
+      return`<div style="border:1px solid var(--border);border-radius:5px;margin:8px 10px;overflow:hidden;">
+        <div style="background:var(--bg4);padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">
+          <span class="car-badge ${getCarClass(cls)}">${cls}</span>
+        </div>
+        <div style="padding:4px 6px;">${rows}</div>
+      </div>`;
+    }).join('');
+    const card=document.createElement('div');
+    card.className='hl-card';
+    card.innerHTML=`
+      <div class="hl-card-header">
+        <img src="${photo}" alt="${pays}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;" onerror="this.style.display='none'">
+        <div class="hl-card-overlay"></div>
+        <div class="hl-card-title">
+          <div class="hl-card-flag">${flag}</div>
+          <div class="hl-card-name">${special}</div>
+          <div class="hl-card-country">${pays}</div>
+          <div class="hl-card-meta"><span class="hl-meta-chip">${surface}</span><span class="hl-meta-chip">#${idx+1} plus jouée</span></div>
+        </div>
+      </div>
+      ${classBlocks}
+      <div class="hl-activity-bar">
+        <span class="hl-activity-label">Activité</span>
+        <div class="hl-bar-track"><div class="hl-bar-fill" style="width:${pct}%"></div></div>
+        <span class="hl-activity-count">${count} temps</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderLeaderboard(){
+  const filtered=getFiltered();
+  const country=document.getElementById('filter-country').value;
+  const special=document.getElementById('filter-special').value;
+  const cls=document.getElementById('filter-class').value;
+  document.getElementById('leaderboard-flag').textContent=country?(FLAGS[country]||'🌍'):'🏁';
+  document.getElementById('leaderboard-name').textContent=special?special:(country||'Classement général')+(cls?` — ${cls}`:'');
+  const empty=document.getElementById('empty-state'),table=document.getElementById('leaderboard-table');
+  if(!filtered.length){empty.style.display='block';table.style.display='none';document.getElementById('podium-section').style.display='none';return;}
+  empty.style.display='none';table.style.display='table';
+
+  // Podium : pilotes avec le plus de 1ères places par spéciale+classe
+  const podSec=document.getElementById('podium-section');
+  podSec.style.display='block';
+  const podium=document.getElementById('podium');
+  podium.innerHTML='';
+
+  // Étape 1 : pour chaque spéciale+classe, trouver le meilleur temps toutes voitures confondues
+  // On travaille sur allTimes (pas filtered qui peut être restreint) pour le podium global
+  const sourceTimes = (country||special||cls) ? filtered : getBestTimes();
+  const bySpecialCls={};
+  // D'abord grouper par spéciale+classe, puis trouver le meilleur temps par pilote dans ce groupe
+  const groupedSC={};
+  sourceTimes.forEach(t=>{
+    const key=`${t.special}||${t.class}`;
+    if(!groupedSC[key]) groupedSC[key]=[];
+    groupedSC[key].push(t);
+  });
+  // Pour chaque spéciale+classe, trouver le pilote avec le meilleur temps (toutes voitures confondues)
+  Object.entries(groupedSC).forEach(([key,times])=>{
+    // Meilleur temps par pilote dans cette spéciale+classe
+    const bestPerPilot={};
+    times.forEach(t=>{
+      if(!bestPerPilot[t.pseudo]||t.time<bestPerPilot[t.pseudo].time) bestPerPilot[t.pseudo]=t;
+    });
+    // Le vainqueur est le pilote avec le temps le plus bas
+    const winner=Object.values(bestPerPilot).sort((a,b)=>a.time-b.time)[0];
+    bySpecialCls[key]=winner;
+  });
+
+  // Étape 2 : compter les victoires par pilote
+  const winsCount={};
+  Object.values(bySpecialCls).forEach(t=>{
+    if(!winsCount[t.pseudo]) winsCount[t.pseudo]={pseudo:t.pseudo,flag:t.flag,wins:0};
+    winsCount[t.pseudo].wins++;
+  });
+  const topWinners=Object.values(winsCount).sort((a,b)=>b.wins-a.wins).slice(0,3);
+
+  if(topWinners.length){
+    const order=topWinners.length>=3?[topWinners[1],topWinners[0],topWinners[2]]:topWinners.length===2?[topWinners[0],topWinners[1]]:[topWinners[0]];
+    const pClasses=topWinners.length>=3?['p2','p1','p3']:topWinners.length===2?['p1','p2']:['p1'];
+    const pLabels=topWinners.length>=3?['2','1','3']:['1','2'];
+    order.forEach((w,i)=>{
+      const col=getAvatarColor(w.pseudo);
+      const slot=document.createElement('div');
+      slot.className=`podium-slot ${pClasses[i]}`;
+      slot.innerHTML=`<div class="podium-avatar" style="background:${col.bg};color:${col.text};">${getInitials(w.pseudo)}</div><div class="podium-name">${w.flag} ${w.pseudo}</div><div class="podium-time">${w.wins} 🏆 victoire${w.wins>1?'s':''}</div><div class="podium-bar"><div class="podium-bar-rank">${pLabels[i]}</div></div>`;
+      podium.appendChild(slot);
+    });
+  }
+
+  // Grouper par spéciale puis par classe
+  const tbody=document.getElementById('leaderboard-body');
+  tbody.innerHTML='';
+
+  // Si filtre classe actif : affichage simple par spéciale
+  if(cls){
+    // Grouper par spéciale
+    const bySpecial={};
+    filtered.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]=[];bySpecial[t.special].push(t);});
+    Object.entries(bySpecial).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([spec,times])=>{
+      const sorted=times.sort((a,b)=>a.time-b.time);
+      const best=sorted[0].time;
+      // Séparateur spéciale
+      const sep=document.createElement('tr');
+      sep.innerHTML=`<td colspan="8" style="background:var(--bg3);padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);">${FLAGS[sorted[0].pays]||'🌍'} ${spec}</td>`;
+      tbody.appendChild(sep);
+      sorted.forEach((t,i)=>{
+        const col=getAvatarColor(t.pseudo);
+        const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+        const delta=i===0?'—':formatDelta(t.time-best);
+        const tr=document.createElement('tr');
+        tr.className=rankClass;
+        tr.innerHTML=`<td><div class="rank-num">${i+1}</div></td><td><div class="player-cell"><div class="avatar" style="background:${col.bg};color:${col.text};">${getInitials(t.pseudo)}</div><div><div class="player-name"><span>${t.flag}</span>${t.pseudo}</div><div class="player-car">${t.car}</div></div></div></td><td><span style="font-size:13px;color:var(--text2);">${t.car}</span></td><td><span class="car-badge ${getCarClass(t.class)}">${t.class}</span></td><td><span style="font-size:12px;color:var(--text2);">${FLAGS[t.pays]||'🌍'} ${t.special}</span></td><td class="time-cell"><div class="time-val">${formatTime(t.time)}</div></td><td class="time-cell"><div class="time-delta ${i>0?'gap':''}">${delta}</div></td><td class="date-cell">${formatDate(t.date)}</td>`;
+        tbody.appendChild(tr);
+      });
+    });
+  } else {
+    // Grouper par spéciale puis par classe
+    const bySpecial={};
+    filtered.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,byClass:{}};if(!bySpecial[t.special].byClass[t.class])bySpecial[t.special].byClass[t.class]=[];bySpecial[t.special].byClass[t.class].push(t);});
+    Object.entries(bySpecial).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([spec,data])=>{
+      // Séparateur spéciale
+      const sep=document.createElement('tr');
+      sep.innerHTML=`<td colspan="8" style="background:var(--bg4);padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);">${FLAGS[data.pays]||'🌍'} ${spec}</td>`;
+      tbody.appendChild(sep);
+      Object.entries(data.byClass).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([clsName,times])=>{
+        const sorted=times.sort((a,b)=>a.time-b.time);
+        const best=sorted[0].time;
+        // Séparateur classe
+        const clsSep=document.createElement('tr');
+        clsSep.innerHTML=`<td colspan="8" style="background:var(--bg3);padding:4px 20px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);">— ${clsName}</td>`;
+        tbody.appendChild(clsSep);
+        sorted.forEach((t,i)=>{
+          const col=getAvatarColor(t.pseudo);
+          const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+          const delta=i===0?'—':formatDelta(t.time-best);
+          const tr=document.createElement('tr');
+          tr.className=rankClass;
+          tr.innerHTML=`<td><div class="rank-num">${i+1}</div></td><td><div class="player-cell"><div class="avatar" style="background:${col.bg};color:${col.text};">${getInitials(t.pseudo)}</div><div><div class="player-name"><span>${t.flag}</span>${t.pseudo}</div><div class="player-car">${t.car}</div></div></div></td><td><span style="font-size:13px;color:var(--text2);">${t.car}</span></td><td><span class="car-badge ${getCarClass(t.class)}">${t.class}</span></td><td><span style="font-size:12px;color:var(--text2);">${FLAGS[t.pays]||'🌍'} ${t.special}</span></td><td class="time-cell"><div class="time-val">${formatTime(t.time)}</div></td><td class="time-cell"><div class="time-delta ${i>0?'gap':''}">${delta}</div></td><td class="date-cell">${formatDate(t.date)}</td>`;
+          tbody.appendChild(tr);
+        });
+      });
+    });
+  }
+}
+
+function renderSpeciales(){
+  const grid=document.getElementById('speciales-grid'),empty=document.getElementById('speciales-empty');
+  grid.innerHTML='';
+  const bestTimes=getBestTimes();
+  const bySpecial={};
+  bestTimes.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,times:[]};bySpecial[t.special].times.push(t);});
+  const entries=Object.entries(bySpecial);
+  if(!entries.length){empty.style.display='block';return;}
+  empty.style.display='none';
+  entries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([special,data])=>{
+    const sorted=data.times.sort((a,b)=>a.time-b.time),best=sorted[0];
+    const surface=SURFACES[data.pays]||'Gravière';
+    const nbPilotes=new Set(data.times.map(t=>t.pseudo)).size;
+    const card=document.createElement('div');
+    card.className='special-card';
+    card.innerHTML=`<div class="special-card-flag">${FLAGS[data.pays]||'🌍'}</div><div class="special-card-name">${special}</div><div class="special-card-country">${data.pays}</div><div class="special-card-meta"><span>${surface}</span><span>${nbPilotes} pilote${nbPilotes>1?'s':''}</span></div>${best?`<div class="special-record"><span>${formatTime(best.time)}</span><span class="special-record-label">par ${best.pseudo}</span></div>`:''}`;
+    card.onclick=()=>{document.getElementById('filter-special').value=special;switchTab('classement',document.querySelector('.nav-item+.nav-item'));applyFilters();};
+    grid.appendChild(card);
+  });
+}
+
+function renderPilotes(){
+  const grid=document.getElementById('pilots-grid');
+  grid.innerHTML='';
+  const bestTimes=getBestTimes();
+  // Nombre réel de temps soumis (activité) reste sur allTimes
+  const activityCount={};
+  allTimes.forEach(t=>{activityCount[t.pseudo]=(activityCount[t.pseudo]||0)+1;});
+  const byPilot={};
+  bestTimes.forEach(t=>{if(!byPilot[t.pseudo])byPilot[t.pseudo]={flag:t.flag,times:[]};byPilot[t.pseudo].times.push(t);});
+  Object.entries(byPilot).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([pseudo,data])=>{
+    const col=getAvatarColor(pseudo);
+    const wins=data.times.filter(t=>{const rivals=bestTimes.filter(x=>x.special===t.special&&x.class===t.class);return rivals.sort((a,b)=>a.time-b.time)[0]?.pseudo===pseudo;}).length;
+    const card=document.createElement('div');
+    card.className='pilot-card';
+    card.innerHTML=`<div class="pilot-card-avatar" style="background:${col.bg};color:${col.text};">${getInitials(pseudo)}</div><div class="pilot-card-name"><span>${data.flag}</span>${pseudo}</div><div class="pilot-card-stats"><div><div class="pilot-stat-val">${activityCount[pseudo]||data.times.length}</div><div class="pilot-stat-label">Temps</div></div><div><div class="pilot-stat-val">${wins}</div><div class="pilot-stat-label">Victoires</div></div></div>`;
+    card.onclick=()=>{openHistoriquePilote(pseudo);};
+    card.style.cursor='pointer';
+    grid.appendChild(card);
+  });
+}
+
+function renderStats(){
+  document.getElementById('stat-temps').textContent=allTimes.length;
+  document.getElementById('stat-pilotes').textContent=new Set(allTimes.map(t=>t.pseudo)).size;
+  document.getElementById('stat-speciales').textContent=new Set(allTimes.map(t=>t.special)).size;
+  document.getElementById('stat-pays').textContent=new Set(allTimes.map(t=>t.pays)).size;
+}
+
+function applyFilters(){renderAll();}
+
+function switchTab(tab,el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  (el||document.querySelector('.nav-item')).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  // Masquer sidebar + grille sur Highlights et Historique, afficher ailleurs
+  const sidebar=document.getElementById('main-sidebar');
+  const layout=document.getElementById('main-layout');
+  if(tab==='highlights'||tab==='historique'){
+    sidebar.style.display='none';
+    layout.style.gridTemplateColumns='1fr';
+  } else {
+    sidebar.style.display='';
+    layout.style.gridTemplateColumns='';
+  }
+  if(tab==='historique') renderHistorique();
+}
+
+function updateSpecialesInModal(){
+  const pays=document.getElementById('inp-rallye').value;
+  const sel=document.getElementById('inp-special');
+  sel.innerHTML='';
+  (SPECIALES[pays]||[]).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+}
+
+function updateCarsForClass(){
+  const cls=document.getElementById('inp-class').value;
+  const sel=document.getElementById('inp-car');
+  sel.innerHTML='';
+  (CARS_BY_CLASS[cls]||[]).forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+}
+
+function openSubmitModal(){
+  updateSpecialesInModal();
+  updateCarsForClass();
+  const pseudos=[...new Set(allTimes.map(t=>t.pseudo))];
+  const dl=document.getElementById('pseudo-list');
+  dl.innerHTML='';
+  pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;dl.appendChild(o);});
+  document.getElementById('submit-success').style.display='none';
+  document.getElementById('submit-error').style.display='none';
+  document.getElementById('btn-submit').disabled=false;
+  document.getElementById('btn-submit').textContent='Valider le temps';
+  document.getElementById('modal-submit').classList.add('open');
+}
+function closeSubmitModal(){document.getElementById('modal-submit').classList.remove('open');}
+
+async function submitTime(){
+  const pseudo=document.getElementById('inp-pseudo').value.trim();
+  const flag=document.getElementById('inp-flag').value;
+  const pays=document.getElementById('inp-rallye').value;
+  const special=document.getElementById('inp-special').value;
+  const cls=document.getElementById('inp-class').value;
+  const car=document.getElementById('inp-car').value.trim();
+  const mm=document.getElementById('inp-mm').value,ss=document.getElementById('inp-ss').value,ms=document.getElementById('inp-ms').value;
+  const time=parseTime(mm,ss,ms);
+  if(!pseudo||!car||!time||!special){alert('Remplis tous les champs.');return;}
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true;btn.textContent='Envoi…';
+  const{error}=await db.from('times').insert([{pseudo,flag,pays,special,class:cls,car,time}]);
+  btn.disabled=false;btn.textContent='Valider le temps';
+  if(error){const e=document.getElementById('submit-error');e.textContent='Erreur : '+error.message;e.style.display='block';return;}
+  document.getElementById('submit-success').style.display='block';
+  await loadData();
+  setTimeout(()=>closeSubmitModal(),1400);
+}
+
+async function openAdminPanel(){
+  const{data}=await db.from('times').select('*').order('date',{ascending:false});
+  const list=document.getElementById('admin-list');
+  list.innerHTML='';
+  if(!data||!data.length){list.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px;">Aucun temps enregistré.</div>';}
+  (data||[]).forEach(t=>{
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg3);border-radius:4px;font-size:12px;';
+    div.innerHTML=`<span style="flex:1;color:var(--text);">${t.flag} ${t.pseudo} — ${t.special} — ${formatTime(t.time)}</span><span style="color:#e07070;font-size:18px;cursor:pointer;" title="Supprimer">×</span>`;
+    div.querySelector('span:last-child').onclick=async()=>{
+      if(!confirm(`Supprimer le temps de ${t.pseudo} sur ${t.special} ?`))return;
+      await db.from('times').delete().eq('id',t.id);
+      await loadData();openAdminPanel();
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('modal-admin').classList.add('open');
+}
+function closeAdminPanel(){document.getElementById('modal-admin').classList.remove('open');}
+
+async function clearAll(){
+  if(!confirm('Supprimer TOUS les temps ?'))return;
+  await db.from('times').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  allTimes=[];closeAdminPanel();renderAll();
+}
+
+document.getElementById('modal-submit').addEventListener('click',function(e){if(e.target===this)closeSubmitModal();});
+document.getElementById('modal-admin').addEventListener('click',function(e){if(e.target===this)closeAdminPanel();});
+
+// ═══ HISTORIQUE ═══
+let histMode='pilote';
+
+function setHistMode(mode){
+  histMode=mode;
+  document.getElementById('mode-btn-pilote').classList.toggle('active',mode==='pilote');
+  document.getElementById('mode-btn-special').classList.toggle('active',mode==='special');
+  document.getElementById('hist-mode-pilote').style.display=mode==='pilote'?'block':'none';
+  document.getElementById('hist-mode-special').style.display=mode==='special'?'block':'none';
+  renderHistorique();
+}
+
+function populateHistoriqueSelectors(){
+  const pseudos=[...new Set(allTimes.map(t=>t.pseudo))].sort();
+  const specials=[...new Set(allTimes.map(t=>t.special))].sort();
+
+  const selPilote=document.getElementById('hist-select-pilote');
+  const curP=selPilote.value;
+  selPilote.innerHTML='';
+  pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPilote.appendChild(o);});
+  if(pseudos.includes(curP))selPilote.value=curP;
+
+  const selSpecial=document.getElementById('hist-select-special');
+  const curS=selSpecial.value;
+  selSpecial.innerHTML='';
+  specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;selSpecial.appendChild(o);});
+  if(specials.includes(curS))selSpecial.value=curS;
+
+  updateHistSpecialsForPilote();
+  updateHistPilotesForSpecial();
+}
+
+function updateHistSpecialsForPilote(){
+  const pseudo=document.getElementById('hist-select-pilote').value;
+  const sel=document.getElementById('hist-select-pilote-special');
+  const cur=sel.value;
+  const specials=[...new Set(allTimes.filter(t=>t.pseudo===pseudo).map(t=>t.special))].sort();
+  sel.innerHTML='<option value="">Toutes les spécialités</option>';
+  specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  if(specials.includes(cur))sel.value=cur;
+}
+
+function updateHistPilotesForSpecial(){
+  const special=document.getElementById('hist-select-special').value;
+  const sel=document.getElementById('hist-select-special-pilote');
+  const cur=sel.value;
+  const pseudos=[...new Set(allTimes.filter(t=>t.special===special).map(t=>t.pseudo))].sort();
+  sel.innerHTML='<option value="">Tous les pilotes</option>';
+  pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;sel.appendChild(o);});
+  if(pseudos.includes(cur))sel.value=cur;
+}
+
+function openHistoriquePilote(pseudo){
+  switchTab('historique',document.querySelector('.nav-item:nth-child(5)'));
+  setHistMode('pilote');
+  populateHistoriqueSelectors();
+  document.getElementById('hist-select-pilote').value=pseudo;
+  updateHistSpecialsForPilote();
+  renderHistorique();
+}
+
+function renderHistTimeline(times, groupLabel, groupSub){
+  // times triés chronologiquement, on calcule le record courant à chaque étape
+  const sorted=[...times].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let runningBest=Infinity;
+  const rows=sorted.map((t,i)=>{
+    const prev=i>0?sorted[i-1]:null;
+    const isNewBest=t.time<runningBest;
+    if(isNewBest) runningBest=t.time;
+    const delta=prev?t.time-prev.time:0;
+    const deltaHtml=prev?(delta<0?`<span class="hist-delta-tag improve">${formatTime(Math.abs(delta)).replace('00:','-')}</span>`:delta>0?`<span class="hist-delta-tag worse">+${(delta/1000).toFixed(3)}</span>`:'<span class="hist-delta-tag" style="color:var(--text3);background:var(--bg4);">=</span>'):'';
+    return`<div class="hist-item ${isNewBest?'is-best':''}">
+      <div class="hist-date">${formatDate(t.date)}</div>
+      <div style="flex:1;">
+        <div class="hist-time-val ${isNewBest?'best-tag':''}">${formatTime(t.time)}</div>
+        <div class="hist-meta-line">${t.car} · ${t.class}${groupLabel?'':` · ${t.special}`}</div>
+      </div>
+      ${deltaHtml}
+    </div>`;
+  }).join('');
+  return`<div class="hist-group">
+    ${groupLabel?`<div class="hist-group-header"><div class="hist-group-title">${groupLabel}</div>${groupSub?`<div class="hist-group-sub">${groupSub}</div>`:''}</div>`:''}
+    <div class="hist-timeline">${rows}</div>
+  </div>`;
+}
+
+function renderHistorique(){
+  const content=document.getElementById('hist-content');
+  const empty=document.getElementById('hist-empty');
+  content.innerHTML='';
+
+  if(histMode==='pilote'){
+    const pseudo=document.getElementById('hist-select-pilote').value;
+    const specialFilter=document.getElementById('hist-select-pilote-special').value;
+    if(!pseudo){empty.style.display='block';return;}
+    let times=allTimes.filter(t=>t.pseudo===pseudo);
+    if(specialFilter) times=times.filter(t=>t.special===specialFilter);
+    if(!times.length){empty.style.display='block';return;}
+    empty.style.display='none';
+
+    if(specialFilter){
+      content.innerHTML=renderHistTimeline(times,null,null);
+    } else {
+      // Grouper par spéciale
+      const bySpecial={};
+      times.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]=[];bySpecial[t.special].push(t);});
+      content.innerHTML=Object.entries(bySpecial).sort((a,b)=>a[0].localeCompare(b[0])).map(([special,ts])=>{
+        const pays=ts[0].pays;
+        return renderHistTimeline(ts,`${FLAGS[pays]||'🌍'} ${special}`,`${ts.length} essai${ts.length>1?'s':''}`);
+      }).join('');
+    }
+  } else {
+    const special=document.getElementById('hist-select-special').value;
+    const pilotFilter=document.getElementById('hist-select-special-pilote').value;
+    if(!special){empty.style.display='block';return;}
+    let times=allTimes.filter(t=>t.special===special);
+    if(pilotFilter) times=times.filter(t=>t.pseudo===pilotFilter);
+    if(!times.length){empty.style.display='block';return;}
+    empty.style.display='none';
+
+    if(pilotFilter){
+      content.innerHTML=renderHistTimeline(times,null,null);
+    } else {
+      // Grouper par pilote
+      const byPilot={};
+      times.forEach(t=>{if(!byPilot[t.pseudo])byPilot[t.pseudo]=[];byPilot[t.pseudo].push(t);});
+      content.innerHTML=Object.entries(byPilot).sort((a,b)=>a[0].localeCompare(b[0])).map(([pseudo,ts])=>{
+        return renderHistTimeline(ts,`${ts[0].flag} ${pseudo}`,`${ts.length} essai${ts.length>1?'s':''}`);
+      }).join('');
+    }
+  }
+}
+
+document.getElementById('hist-select-pilote').addEventListener('change',updateHistSpecialsForPilote);
+
+db.channel('times-changes').on('postgres_changes',{event:'*',schema:'public',table:'times'},()=>loadData()).subscribe();
+
+updateSpecialesInModal();
+updateCarsForClass();
+// Highlights est l'onglet par défaut : masquer la sidebar
+document.getElementById('main-sidebar').style.display='none';
+document.getElementById('main-layout').style.gridTemplateColumns='1fr';
+loadData();
+</script>
+</body>
+</html>
