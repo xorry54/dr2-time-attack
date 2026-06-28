@@ -219,7 +219,27 @@
     .form-grid{grid-template-columns:1fr;}
     .highlights-grid{grid-template-columns:1fr;}
     .leaderboard thead th:nth-child(3),.leaderboard tbody td:nth-child(3){display:none;}
-  }  /* HISTORIQUE */
+  }  /* CHAMPIONNAT */
+  .champ-pts{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;color:var(--gold);text-align:right;}
+  .champ-bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;}
+  .champ-bar-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:2px;}
+  .stat-pill{display:inline-flex;flex-direction:column;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;min-width:80px;}
+  .stat-pill-val{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;color:var(--text);}
+  .stat-pill-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px;white-space:nowrap;}
+  .stat-pill.gold .stat-pill-val{color:var(--gold);}
+  .stat-pill.red .stat-pill-val{color:var(--red);}
+  .stat-pill.green .stat-pill-val{color:var(--green);}
+  .champ-class-section{margin-bottom:1.25rem;}
+  .champ-class-header{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .pts-badge{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;padding:2px 8px;border-radius:3px;background:rgba(240,160,32,.15);color:var(--gold);border:1px solid rgba(240,160,32,.3);}
+  .prog-bar{display:flex;gap:2px;margin-top:6px;}
+  .prog-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);}
+  .prog-dot.win{background:var(--gold);}
+  .prog-dot.podium{background:var(--silver);}
+  .prog-dot.points{background:var(--red);}
+
+</style>
+
   .hist-mode-btn.active{border-color:var(--red)!important;color:var(--red)!important;background:rgba(226,48,48,.08);}
   .hist-timeline{display:flex;flex-direction:column;gap:0;}
   .hist-group{margin-bottom:1.5rem;}
@@ -263,6 +283,7 @@
 <!-- NAV -->
 <nav class="main-nav">
   <div class="nav-item active" onclick="switchTab('highlights',this)">✦ Highlights</div>
+  <div class="nav-item" onclick="switchTab('championnat',this)">🏆 Championnat</div>
   <div class="nav-item" onclick="switchTab('classement',this)">Classement</div>
   <div class="nav-item" onclick="switchTab('speciales',this)">Spéciales</div>
   <div class="nav-item" onclick="switchTab('pilotes',this)">Pilotes</div>
@@ -412,10 +433,56 @@
       </div>
     </div>
 
+    <!-- ══ TAB CHAMPIONNAT ══ -->
+    <div class="tab-content" id="tab-championnat">
+      <div class="content-header">
+        <div class="content-title"><span>🏆</span><span>Championnat général</span></div>
+        <div style="font-size:12px;color:var(--text3);">Points : 25·18·15·12·10·8·6·4·2·1 par spéciale+classe</div>
+      </div>
+      <div id="champ-loading" class="loading"><div class="spinner"></div>Calcul des points…</div>
+      <div id="champ-content" style="display:none;">
+        <!-- Podium championnat -->
+        <div id="champ-podium-section" style="margin-bottom:1.5rem;">
+          <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium général</div><div class="eyebrow-line"></div></div>
+          <div class="podium" id="champ-podium"></div>
+        </div>
+        <!-- Tableau des points -->
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Classement complet</div><div class="eyebrow-line"></div></div>
+        <table class="leaderboard" id="champ-table">
+          <thead><tr>
+            <th>#</th><th>Pilote</th>
+            <th class="right">Points</th>
+            <th class="right">Victoires</th>
+            <th class="right">Podiums</th>
+            <th class="right">Épreuves</th>
+            <th class="right">Moy. pts</th>
+          </tr></thead>
+          <tbody id="champ-body"></tbody>
+        </table>
+        <!-- Détail par classe -->
+        <div style="margin-top:1.5rem;" id="champ-by-class"></div>
+      </div>
+      <div id="champ-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:40px;margin-bottom:12px;">🏆</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps enregistré</div>
+      </div>
+    </div>
+
     <!-- ══ TAB PILOTES ══ -->
     <div class="tab-content" id="tab-pilotes">
       <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Pilotes de la communauté</div><div class="eyebrow-line"></div></div>
       <div class="pilots-grid" id="pilots-grid"></div>
+    </div>
+
+    <!-- Modal stats pilote -->
+    <div class="modal-overlay" id="modal-pilote">
+      <div class="modal" style="max-width:600px;">
+        <div class="modal-title" id="modal-pilote-title">Statistiques pilote</div>
+        <div id="modal-pilote-content"></div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="document.getElementById('modal-pilote').classList.remove('open')">Fermer</button>
+        </div>
+      </div>
     </div>
 
     <!-- ══ TAB HISTORIQUE ══ -->
@@ -681,7 +748,7 @@ function getFiltered(){
   return t;
 }
 
-function renderAll(){renderSidebar();renderHighlights();renderLeaderboard();renderSpeciales();renderPilotes();renderStats();populateHistoriqueSelectors();}
+function renderAll(){renderSidebar();renderHighlights();renderLeaderboard();renderSpeciales();renderPilotes();renderChampionnat();renderStats();populateHistoriqueSelectors();}
 
 function renderSidebar(){
   const countries=[...new Set(allTimes.map(t=>t.pays))].sort();
@@ -1039,7 +1106,7 @@ function switchTab(tab,el){
   // Masquer sidebar + grille sur Highlights et Historique, afficher ailleurs
   const sidebar=document.getElementById('main-sidebar');
   const layout=document.getElementById('main-layout');
-  if(tab==='highlights'||tab==='historique'){
+  if(tab==='highlights'||tab==='historique'||tab==='championnat'){
     sidebar.style.display='none';
     layout.style.gridTemplateColumns='1fr';
   } else {
@@ -1126,6 +1193,189 @@ async function clearAll(){
 
 document.getElementById('modal-submit').addEventListener('click',function(e){if(e.target===this)closeSubmitModal();});
 document.getElementById('modal-admin').addEventListener('click',function(e){if(e.target===this)closeAdminPanel();});
+
+// ═══ CHAMPIONNAT ═══
+const POINTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
+
+function computeChampionnat(){
+  const bestTimes=getBestTimes();
+  // Pour chaque spéciale+classe, classer les pilotes par meilleur temps
+  const groupedSC={};
+  bestTimes.forEach(t=>{
+    const key=`${t.special}||${t.class}`;
+    if(!groupedSC[key])groupedSC[key]=[];
+    groupedSC[key].push(t);
+  });
+  // Construire les stats pilotes
+  const pilots={};
+  Object.entries(groupedSC).forEach(([key,times])=>{
+    // Regrouper par pilote, garder son meilleur temps dans ce groupe
+    const bestPerPilot={};
+    times.forEach(t=>{if(!bestPerPilot[t.pseudo]||t.time<bestPerPilot[t.pseudo].time)bestPerPilot[t.pseudo]=t;});
+    const ranked=Object.values(bestPerPilot).sort((a,b)=>a.time-b.time);
+    const cls=key.split('||')[1];
+    ranked.forEach((t,i)=>{
+      if(!pilots[t.pseudo])pilots[t.pseudo]={pseudo:t.pseudo,flag:t.flag,pts:0,wins:0,podiums:0,epreuves:0,ptsByClass:{},history:[]};
+      const p=pilots[t.pseudo];
+      const pts=POINTS_SCALE[i]||0;
+      p.pts+=pts;
+      p.epreuves++;
+      if(i===0)p.wins++;
+      if(i<3)p.podiums++;
+      if(!p.ptsByClass[cls])p.ptsByClass[cls]=0;
+      p.ptsByClass[cls]+=pts;
+      p.history.push({special:t.special,class:cls,pos:i+1,pts,time:t.time,car:t.car});
+    });
+  });
+  return Object.values(pilots).sort((a,b)=>b.pts-a.pts);
+}
+
+function renderChampionnat(){
+  const loading=document.getElementById('champ-loading');
+  const content=document.getElementById('champ-content');
+  const empty=document.getElementById('champ-empty');
+  if(!allTimes.length){loading.style.display='none';empty.style.display='block';content.style.display='none';return;}
+  loading.style.display='none';empty.style.display='none';content.style.display='block';
+
+  const ranking=computeChampionnat();
+  const maxPts=ranking[0]?.pts||1;
+
+  // Podium
+  const podium=document.getElementById('champ-podium');
+  podium.innerHTML='';
+  const top3=ranking.slice(0,3);
+  const order=top3.length>=3?[top3[1],top3[0],top3[2]]:top3.length===2?[top3[0],top3[1]]:[top3[0]];
+  const pClasses=top3.length>=3?['p2','p1','p3']:top3.length===2?['p1','p2']:['p1'];
+  const pLabels=top3.length>=3?['2','1','3']:['1','2'];
+  order.forEach((w,i)=>{
+    const col=getAvatarColor(w.pseudo);
+    const slot=document.createElement('div');
+    slot.className=`podium-slot ${pClasses[i]}`;
+    slot.innerHTML=`<div class="podium-avatar" style="background:${col.bg};color:${col.text};">${getInitials(w.pseudo)}</div><div class="podium-name">${w.flag} ${w.pseudo}</div><div class="podium-time" style="color:var(--gold);font-family:'Share Tech Mono',monospace;">${w.pts} pts</div><div class="podium-bar"><div class="podium-bar-rank">${pLabels[i]}</div></div>`;
+    podium.appendChild(slot);
+  });
+
+  // Tableau
+  const tbody=document.getElementById('champ-body');
+  tbody.innerHTML='';
+  ranking.forEach((p,i)=>{
+    const col=getAvatarColor(p.pseudo);
+    const avg=(p.pts/p.epreuves).toFixed(1);
+    const pct=Math.round((p.pts/maxPts)*100);
+    const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+    const tr=document.createElement('tr');
+    tr.className=rankClass;
+    tr.style.cursor='pointer';
+    tr.onclick=()=>openPilotStats(p.pseudo);
+    tr.innerHTML=`
+      <td><div class="rank-num">${i+1}</div></td>
+      <td><div class="player-cell">
+        <div class="avatar" style="background:${col.bg};color:${col.text};">${getInitials(p.pseudo)}</div>
+        <div>
+          <div class="player-name"><span>${p.flag}</span>${p.pseudo}</div>
+          <div class="champ-bar-track" style="width:120px;margin-top:4px;"><div class="champ-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div></td>
+      <td><div class="champ-pts">${p.pts}</div></td>
+      <td class="time-cell"><span style="color:var(--gold);">${p.wins} 🏆</span></td>
+      <td class="time-cell"><span style="color:var(--silver);">${p.podiums} 🥈</span></td>
+      <td class="time-cell" style="color:var(--text2);">${p.epreuves}</td>
+      <td class="time-cell" style="font-family:'Share Tech Mono',monospace;color:var(--text2);">${avg}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Classement par classe
+  const byClass=document.getElementById('champ-by-class');
+  byClass.innerHTML='<div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Points par classe</div><div class="eyebrow-line"></div></div>';
+  const allClasses=[...new Set(ranking.flatMap(p=>Object.keys(p.ptsByClass)))].sort();
+  allClasses.forEach(cls=>{
+    const clsRanking=ranking.filter(p=>p.ptsByClass[cls]).sort((a,b)=>(b.ptsByClass[cls]||0)-(a.ptsByClass[cls]||0));
+    if(!clsRanking.length)return;
+    const maxC=clsRanking[0].ptsByClass[cls]||1;
+    const section=document.createElement('div');
+    section.className='champ-class-section';
+    section.innerHTML=`<div class="champ-class-header"><span class="car-badge ${getCarClass(cls)}">${cls}</span></div>
+      ${clsRanking.map((p,i)=>{
+        const col=getAvatarColor(p.pseudo);
+        const pts=p.ptsByClass[cls]||0;
+        const pct=Math.round((pts/maxC)*100);
+        return`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
+          <div style="min-width:22px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
+          <div class="avatar" style="background:${col.bg};color:${col.text};width:28px;height:28px;font-size:11px;">${getInitials(p.pseudo)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;">${p.flag} ${p.pseudo}</div>
+            <div class="champ-bar-track" style="margin-top:3px;"><div class="champ-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="pts-badge">${pts} pts</div>
+        </div>`;
+      }).join('')}`;
+    byClass.appendChild(section);
+  });
+}
+
+// ═══ STATS PILOTE ═══
+function openPilotStats(pseudo){
+  const ranking=computeChampionnat();
+  const pilot=ranking.find(p=>p.pseudo===pseudo);
+  if(!pilot)return;
+
+  const col=getAvatarColor(pseudo);
+  const allPilotTimes=allTimes.filter(t=>t.pseudo===pseudo);
+  const bestTimes=getBestTimes().filter(t=>t.pseudo===pseudo);
+  const rank=ranking.findIndex(p=>p.pseudo===pseudo)+1;
+  const winPct=pilot.epreuves>0?Math.round((pilot.wins/pilot.epreuves)*100):0;
+
+  // Classe favorite (plus de points)
+  const favClass=Object.entries(pilot.ptsByClass).sort((a,b)=>b[1]-a[1])[0];
+  // Spéciale favorite (plus tentée)
+  const specialCount={};
+  allPilotTimes.forEach(t=>{specialCount[t.special]=(specialCount[t.special]||0)+1;});
+  const favSpecial=Object.entries(specialCount).sort((a,b)=>b[1]-a[1])[0];
+  // Progression 30 jours
+  const now=Date.now();
+  const last30=allPilotTimes.filter(t=>now-new Date(t.date).getTime()<30*86400000).length;
+  // Meilleure position
+  const bestPos=pilot.history.length?Math.min(...pilot.history.map(h=>h.pos)):'-';
+
+  document.getElementById('modal-pilote-title').innerHTML=`<span style="margin-right:8px;">${allPilotTimes[0]?.flag||''}</span>${pseudo}`;
+  document.getElementById('modal-pilote-content').innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;">
+      <div class="stat-pill gold"><div class="stat-pill-val">${pilot.pts}</div><div class="stat-pill-label">Points</div></div>
+      <div class="stat-pill gold"><div class="stat-pill-val">#${rank}</div><div class="stat-pill-label">Classement</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">${pilot.wins}</div><div class="stat-pill-label">Victoires</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">${pilot.podiums}</div><div class="stat-pill-label">Podiums</div></div>
+      <div class="stat-pill red"><div class="stat-pill-val">${winPct}%</div><div class="stat-pill-label">% victoires</div></div>
+      <div class="stat-pill green"><div class="stat-pill-val">${last30}</div><div class="stat-pill-label">Essais 30j</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">${allPilotTimes.length}</div><div class="stat-pill-label">Total essais</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">${bestTimes.length}</div><div class="stat-pill-label">Spé. tentées</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div class="sidebar-section-title" style="margin-bottom:6px;">Classe favorite</div>
+        ${favClass?`<span class="car-badge ${getCarClass(favClass[0])}">${favClass[0]}</span><span style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);margin-left:8px;">${favClass[1]} pts</span>`:'—'}
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div class="sidebar-section-title" style="margin-bottom:6px;">Spéciale favorite</div>
+        <div style="font-size:13px;color:var(--text);">${favSpecial?favSpecial[0]:'—'}</div>
+        ${favSpecial?`<div style="font-size:11px;color:var(--text3);">${favSpecial[1]} essai${favSpecial[1]>1?'s':''}</div>`:''}
+      </div>
+    </div>
+    <div class="sidebar-section-title" style="margin-bottom:8px;">Meilleurs résultats</div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;">
+      ${pilot.history.sort((a,b)=>a.pos-b.pos).slice(0,10).map(h=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bg3);border-radius:4px;font-size:12px;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;min-width:22px;color:${h.pos===1?'var(--gold)':h.pos===2?'var(--silver)':h.pos===3?'var(--bronze)':'var(--text3)'};">${h.pos}</span>
+          <span style="flex:1;color:var(--text);">${h.special} <span style="color:var(--text3);">· ${h.class}</span></span>
+          <span class="pts-badge">${h.pts} pts</span>
+          <span style="font-family:'Share Tech Mono',monospace;color:var(--text2);">${formatTime(h.time)}</span>
+        </div>`).join('')}
+    </div>
+  `;
+  document.getElementById('modal-pilote').classList.add('open');
+}
+
+document.getElementById('modal-pilote').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
 // ═══ HISTORIQUE ═══
 let histMode='pilote';
