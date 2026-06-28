@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DR2 Time Attack">
+<meta name="theme-color" content="#0d0d14">
+<link rel="manifest" href="manifest.json">
+<title>DR2 Time Attack</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --red:#e23030; --bg:#0d0d14; --bg2:#14141f; --bg3:#1c1c2e; --bg4:#24243a;
+  --border:#2a2a42; --border2:#3a3a58; --text:#e8e8f0; --text2:#9090b0; --text3:#5a5a78;
+  --gold:#f0a020; --silver:#a0a0b8; --bronze:#c07040; --green:#40c080;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── LOCK SCREEN ── */
+#screen-lock{align-items:center;justify-content:center;background:var(--bg);padding:2rem;}
+.lock-logo{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:4px;}
+.lock-logo span{color:var(--red);}
+.lock-sub{font-size:11px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:2.5rem;}
+.lock-avatar{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;margin:0 auto 1rem;border:2px solid var(--border2);}
+.lock-pseudo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;text-align:center;letter-spacing:1px;margin-bottom:6px;}
+.lock-hint{font-size:12px;color:var(--text3);text-align:center;margin-bottom:1.5rem;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:1.5rem;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border2);transition:background .15s;}
+.pin-dot.filled{background:var(--red);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto;}
+.key{background:var(--bg3);border:1px solid var(--border);border-radius:12px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background .1s;user-select:none;}
+.key:active{background:var(--bg4);}
+.key-num{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:600;line-height:1;}
+.key-letters{font-size:9px;color:var(--text3);letter-spacing:1px;margin-top:1px;}
+.key.key-del{background:transparent;border-color:transparent;}
+.key.key-del .key-num{font-size:20px;color:var(--text2);}
+.key.key-ok{background:var(--red);border-color:var(--red);}
+.key.key-ok .key-num{color:#fff;font-size:18px;}
+.lock-error{color:#e07070;font-size:13px;text-align:center;margin-bottom:1rem;min-height:20px;}
+.lock-switch{font-size:12px;color:var(--text3);text-align:center;margin-top:1.5rem;}
+.lock-switch span{color:var(--red);cursor:pointer;text-decoration:underline;}
+.lock-switch-pseudo{margin-top:10px;}
+.lock-switch-pseudo input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-family:'Barlow',sans-serif;font-size:14px;width:100%;max-width:260px;display:block;margin:6px auto 0;}
+.lock-switch-pseudo input:focus{outline:none;border-color:var(--red);}
+
+/* ── APP ── */
+#screen-app{background:var(--bg);}
+.app-header{background:var(--bg2);border-bottom:2px solid var(--red);padding:calc(var(--safe-top) + 10px) 1rem 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.app-logo{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;flex:1;}
+.app-logo span{color:var(--red);}
+.app-user{display:flex;align-items:center;gap:8px;}
+.user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;flex-shrink:0;}
+.user-pseudo{font-size:12px;color:var(--text2);}
+.btn-lock{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text3);padding:5px 10px;font-size:12px;cursor:pointer;}
+
+/* ── TABS ── */
+.app-tabs{display:flex;background:var(--bg3);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.app-tab{flex:1;min-width:60px;padding:10px 6px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.app-tab.active{color:var(--red);border-bottom-color:var(--red);}
+
+/* ── CONTENT ── */
+.app-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.tab-pane{display:none;padding:1rem;}
+.tab-pane.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.card-header{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.card-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* ── RANKING ENTRIES ── */
+.rank-entry{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.rank-entry:last-child{border-bottom:none;}
+.rank-entry.gold{border-left:3px solid var(--gold);}
+.rank-entry.silver{border-left:3px solid var(--silver);}
+.rank-entry.bronze{border-left:3px solid var(--bronze);}
+.rank-num{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;min-width:24px;color:var(--text3);}
+.rank-entry.gold .rank-num{color:var(--gold);}
+.rank-entry.silver .rank-num{color:var(--silver);}
+.rank-entry.bronze .rank-num{color:var(--bronze);}
+.mini-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;flex-shrink:0;}
+.entry-info{flex:1;min-width:0;}
+.entry-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.entry-sub{font-size:11px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.entry-time{text-align:right;flex-shrink:0;}
+.entry-time-val{font-family:'Share Tech Mono',monospace;font-size:14px;}
+.entry-delta{font-family:'Share Tech Mono',monospace;font-size:10px;color:#e07070;margin-top:1px;}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;gap:6px;padding:0 1rem 10px;overflow-x:auto;flex-shrink:0;}
+.filter-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.filter-chip.active{background:rgba(226,48,48,.15);border-color:var(--red);color:var(--red);}
+.filter-select-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 1rem 10px;}
+.m-select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;width:100%;}
+.m-select:focus{outline:none;border-color:var(--red);}
+.m-select option{background:var(--bg3);}
+
+/* ── CAR BADGE ── */
+.car-badge{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:600;letter-spacing:1px;padding:1px 5px;border-radius:3px;text-transform:uppercase;}
+.class-r5{background:rgba(66,120,200,.2);color:#7090e0;border:1px solid rgba(66,120,200,.3);}
+.class-wrc,.class-grpb{background:rgba(200,140,30,.2);color:#e0a040;border:1px solid rgba(200,140,30,.3);}
+.class-r2{background:rgba(60,160,100,.2);color:#60c880;border:1px solid rgba(60,160,100,.3);}
+.class-other{background:rgba(120,80,180,.2);color:#a080d0;border:1px solid rgba(120,80,180,.3);}
+
+/* ── SUBMIT FORM ── */
+.form-section{margin-bottom:14px;}
+.form-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:5px;}
+.form-input,.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:11px 12px;font-family:'Barlow',sans-serif;font-size:14px;width:100%;transition:border-color .15s;}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--red);}
+.form-select option{background:var(--bg3);}
+.time-row{display:flex;align-items:center;gap:8px;}
+.time-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:11px 6px;font-family:'Share Tech Mono',monospace;font-size:20px;text-align:center;flex:1;transition:border-color .15s;}
+.time-box:focus{outline:none;border-color:var(--red);}
+.time-sep{font-family:'Share Tech Mono',monospace;font-size:22px;color:var(--text3);}
+.submit-btn{background:var(--red);color:#fff;border:none;border-radius:10px;width:100%;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:6px;transition:background .15s;}
+.submit-btn:hover{background:#c02020;}
+.submit-btn:disabled{opacity:.5;}
+.msg-ok{background:rgba(40,160,90,.1);border:1px solid rgba(40,160,90,.3);border-radius:8px;color:var(--green);padding:10px 14px;font-size:13px;text-align:center;margin-top:10px;display:none;}
+.msg-err{background:rgba(200,50,50,.1);border:1px solid rgba(200,50,50,.3);border-radius:8px;color:#e07070;padding:10px 14px;font-size:13px;text-align:center;margin-top:10px;display:none;}
+
+/* ── SECTION LABEL ── */
+.section-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text3);padding:12px 14px 6px;border-bottom:1px solid var(--border);}
+
+/* ── STAT PILLS ── */
+.stat-row{display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap;}
+.s-pill{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;}
+.s-val{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;}
+.s-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.s-pill.g .s-val{color:var(--gold);}
+.s-pill.r .s-val{color:var(--red);}
+.s-pill.gr .s-val{color:var(--green);}
+
+/* ── CHAMP PODIUM ── */
+.m-podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:16px 14px 0;}
+.m-pod-slot{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;max-width:100px;}
+.m-pod-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;border:2px solid transparent;}
+.m-pod-slot.p1 .m-pod-avatar{border-color:var(--gold);}
+.m-pod-slot.p2 .m-pod-avatar{border-color:var(--silver);}
+.m-pod-slot.p3 .m-pod-avatar{border-color:var(--bronze);}
+.m-pod-name{font-size:11px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+.m-pod-pts{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold);}
+.m-pod-bar{width:100%;border-radius:3px 3px 0 0;display:flex;align-items:center;justify-content:center;padding-top:6px;}
+.m-pod-rank{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;}
+.m-pod-slot.p1 .m-pod-bar{height:60px;background:rgba(240,160,32,.15);border:1px solid rgba(240,160,32,.3);}
+.m-pod-slot.p1 .m-pod-rank{color:var(--gold);}
+.m-pod-slot.p2 .m-pod-bar{height:44px;background:rgba(160,160,184,.1);border:1px solid rgba(160,160,184,.2);}
+.m-pod-slot.p2 .m-pod-rank{color:var(--silver);}
+.m-pod-slot.p3 .m-pod-bar{height:32px;background:rgba(192,112,64,.1);border:1px solid rgba(192,112,64,.2);}
+.m-pod-slot.p3 .m-pod-rank{color:var(--bronze);}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:2rem;gap:8px;color:var(--text3);font-size:13px;}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding-bottom:var(--safe-bottom);flex-shrink:0;}
+.bottom-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px;cursor:pointer;transition:color .15s;color:var(--text3);font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;gap:3px;}
+.bottom-tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.bottom-tab.active{color:var(--red);}
+
+/* ── HIGHLIGHTS MOBILE ── */
+.hl-recent{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.hl-recent-item{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:8px;padding:10px;}
+.pts-badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:rgba(240,160,32,.15);color:var(--gold);border:1px solid rgba(240,160,32,.3);white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOCK SCREEN ═══ -->
+<div class="screen active" id="screen-lock">
+  <div class="lock-logo">DIRT RALLY <span>2.0</span></div>
+  <div class="lock-sub">Time Attack · App</div>
+
+  <!-- Mode: choisir pseudo -->
+  <div id="lock-choose-pseudo" style="width:100%;max-width:300px;text-align:center;">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Sélectionne ton profil</div>
+    <div id="pseudo-list-lock" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;"></div>
+    <div style="font-size:12px;color:var(--text3);margin-top:8px;">Nouveau pilote ? <span style="color:var(--red);cursor:pointer;text-decoration:underline;" onclick="showRegister()">Créer un compte</span></div>
+  </div>
+
+  <!-- Mode: saisir PIN -->
+  <div id="lock-pin" style="display:none;width:100%;max-width:300px;">
+    <div class="lock-avatar" id="lock-avatar"></div>
+    <div class="lock-pseudo" id="lock-pseudo-name"></div>
+    <div class="lock-hint">Saisis ton PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+    <div class="pin-keypad" id="pin-keypad"></div>
+    <div class="lock-switch"><span onclick="backToChoose()">← Changer de pilote</span></div>
+  </div>
+
+  <!-- Mode: inscription -->
+  <div id="lock-register" style="display:none;width:100%;max-width:300px;">
+    <div style="font-size:16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-align:center;margin-bottom:1rem;letter-spacing:1px;">NOUVEAU PILOTE</div>
+    <div class="form-section">
+      <label class="form-label">Pseudo</label>
+      <input class="form-input" id="reg-pseudo" type="text" placeholder="Ton pseudo" autocomplete="off">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Drapeau</label>
+      <select class="form-select" id="reg-flag">
+        <option value="🇫🇷">🇫🇷 France</option><option value="🇧🇪">🇧🇪 Belgique</option>
+        <option value="🇨🇭">🇨🇭 Suisse</option><option value="🇩🇪">🇩🇪 Allemagne</option>
+        <option value="🇬🇧">🇬🇧 Royaume-Uni</option><option value="🇮🇹">🇮🇹 Italie</option>
+        <option value="🇪🇸">🇪🇸 Espagne</option><option value="🇵🇱">🇵🇱 Pologne</option>
+        <option value="🇸🇪">🇸🇪 Suède</option><option value="🇫🇮">🇫🇮 Finlande</option>
+        <option value="🇺🇸">🇺🇸 États-Unis</option><option value="🇦🇺">🇦🇺 Australie</option>
+      </select>
+    </div>
+    <div class="form-section">
+      <label class="form-label">Choisis ton PIN (4 chiffres)</label>
+      <div class="pin-dots" style="margin:10px 0;">
+        <div class="pin-dot" id="rd0"></div><div class="pin-dot" id="rd1"></div>
+        <div class="pin-dot" id="rd2"></div><div class="pin-dot" id="rd3"></div>
+      </div>
+      <div class="pin-keypad" id="reg-keypad"></div>
+    </div>
+    <div class="lock-error" id="reg-error"></div>
+    <button class="submit-btn" id="reg-btn" onclick="registerPilot()">Créer mon compte</button>
+    <div class="lock-switch" style="margin-top:1rem;"><span onclick="backToChoose()">← Retour</span></div>
+  </div>
+</div>
+
+<!-- ═══ APP SCREEN ═══ -->
+<div class="screen" id="screen-app">
+  <div class="app-header">
+    <div class="app-logo">DR2 <span>Time Attack</span></div>
+    <div class="app-user">
+      <div class="user-avatar" id="app-avatar"></div>
+      <div class="user-pseudo" id="app-pseudo"></div>
+      <button class="btn-lock" onclick="lockApp()">🔒</button>
+    </div>
+  </div>
+
+  <div class="app-content">
+    <!-- TAB HIGHLIGHTS -->
+    <div class="tab-pane active" id="pane-home">
+      <div class="loading" id="home-loading"><div class="spinner"></div>Chargement…</div>
+      <div id="home-content" style="display:none;">
+        <div class="section-label">🕐 Derniers temps</div>
+        <div id="home-recent"></div>
+        <div class="section-label">🏆 Meilleurs pilotes</div>
+        <div id="home-top"></div>
+      </div>
+    </div>
+
+    <!-- TAB CLASSEMENT -->
+    <div class="tab-pane" id="pane-rank">
+      <div style="padding:10px 1rem 0;">
+        <select class="m-select" id="rank-country" onchange="renderRanking()" style="margin-bottom:8px;">
+          <option value="">🌍 Tous les pays</option>
+        </select>
+        <select class="m-select" id="rank-special" onchange="renderRanking()" style="margin-bottom:8px;">
+          <option value="">📍 Toutes les spéciales</option>
+        </select>
+        <select class="m-select" id="rank-class" onchange="renderRanking()">
+          <option value="">🚗 Toutes les classes</option>
+          <option value="H1">H1</option><option value="H2 FWD">H2 FWD</option>
+          <option value="H2 RWD">H2 RWD</option><option value="H3">H3</option>
+          <option value="F2 Kit Car">F2 Kit Car</option><option value="Groupe B RWD">Groupe B RWD</option>
+          <option value="Groupe B AWD">Groupe B AWD</option><option value="R2">R2</option>
+          <option value="Groupe A">Groupe A</option><option value="NR4/R4">NR4/R4</option>
+          <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+          <option value="R5">R5</option><option value="Rally GT">Rally GT</option>
+        </select>
+      </div>
+      <div id="rank-content" style="padding-top:10px;"></div>
+    </div>
+
+    <!-- TAB CHAMPIONNAT -->
+    <div class="tab-pane" id="pane-champ">
+      <div class="loading" id="champ-loading"><div class="spinner"></div>Calcul…</div>
+      <div id="champ-content" style="display:none;">
+        <div class="m-podium" id="m-podium"></div>
+        <div style="height:16px;"></div>
+        <div class="section-label">Classement général</div>
+        <div id="champ-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB SOUMETTRE -->
+    <div class="tab-pane" id="pane-submit">
+      <div style="padding:1rem;">
+        <select class="form-select" id="s-rallye" onchange="updateAppSpeciales()" style="margin-bottom:10px;">
+          <option value="Argentine">Argentine 🇦🇷</option>
+          <option value="Australie">Australie 🇦🇺</option>
+          <option value="Écosse">Écosse 🏴󠁧󠁢󠁳󠁣󠁴󠁿</option>
+          <option value="Espagne">Espagne 🇪🇸</option>
+          <option value="Finlande">Finlande 🇫🇮</option>
+          <option value="Allemagne">Allemagne 🇩🇪</option>
+          <option value="Grèce">Grèce 🇬🇷</option>
+          <option value="Monte-Carlo">Monte-Carlo 🇲🇨</option>
+          <option value="Nouvelle-Zélande">Nouvelle-Zélande 🇳🇿</option>
+          <option value="Pays de Galles">Pays de Galles 🏴󠁧󠁢󠁷󠁬󠁳󠁿</option>
+          <option value="Pologne">Pologne 🇵🇱</option>
+          <option value="Suède">Suède 🇸🇪</option>
+          <option value="USA">USA 🇺🇸</option>
+        </select>
+        <div class="form-section">
+          <label class="form-label">Spéciale</label>
+          <select class="form-select" id="s-special"></select>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Classe</label>
+          <select class="form-select" id="s-class" onchange="updateAppCars()">
+            <option value="H1">H1</option><option value="H2 FWD">H2 FWD</option>
+            <option value="H2 RWD">H2 RWD</option><option value="H3">H3</option>
+            <option value="F2 Kit Car">F2 Kit Car</option><option value="Groupe B RWD">Groupe B RWD</option>
+            <option value="Groupe B AWD">Groupe B AWD</option><option value="R2">R2</option>
+            <option value="Groupe A">Groupe A</option><option value="NR4/R4">NR4/R4</option>
+            <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+            <option value="R5">R5</option><option value="Rally GT">Rally GT</option>
+          </select>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Voiture</label>
+          <select class="form-select" id="s-car"></select>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Temps (MM : SS . mmm)</label>
+          <div class="time-row">
+            <input class="time-box" id="s-mm" type="number" min="0" max="99" placeholder="00" inputmode="numeric">
+            <span class="time-sep">:</span>
+            <input class="time-box" id="s-ss" type="number" min="0" max="59" placeholder="00" inputmode="numeric">
+            <span class="time-sep">.</span>
+            <input class="time-box" id="s-ms" type="number" min="0" max="999" placeholder="000" inputmode="numeric">
+          </div>
+        </div>
+        <button class="submit-btn" id="app-submit-btn" onclick="appSubmitTime()">+ Soumettre ce temps</button>
+        <div class="msg-ok" id="app-msg-ok">✓ Temps enregistré !</div>
+        <div class="msg-err" id="app-msg-err"></div>
+      </div>
+    </div>
+
+    <!-- TAB PROFIL -->
+    <div class="tab-pane" id="pane-profile">
+      <div id="profile-content" style="padding-bottom:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="bottom-tab active" onclick="switchAppTab('home',this)">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </div>
+    <div class="bottom-tab" onclick="switchAppTab('rank',this)">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Classement
+    </div>
+    <div class="bottom-tab" onclick="switchAppTab('champ',this)">
+      <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+      Champ.
+    </div>
+    <div class="bottom-tab" onclick="switchAppTab('submit',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Soumettre
+    </div>
+    <div class="bottom-tab" onclick="switchAppTab('profile',this)">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profil
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://gbuzlpcrgmittpuoihps.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdidXpscGNyZ21pdHRwdW9paHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NzA5MjIsImV4cCI6MjA5NzM0NjkyMn0.B1btN2pJt7OVnlMEVwCTaC37fnjDbGZux4z193DTxtU';
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const SPECIALES={
+  'Argentine':['Las Juntas','Camino a La Puerta','Camino de acantilados y rocas','El Rodeo','La Merced','Camino de acantilados y rocas inverso','Valle de los puentes','Valle de los puentes a la inversa','Miraflores','San Isidro','Camino a Coneta','Huillaprima'],
+  'Australie':['Mount Kaye Pass','Mount Kaye Pass Reverse','Rockton Plains','Yambulla Mountain Descent','Yambulla Mountain Ascent','Rockton Plains Reverse','Chandlers Creek','Chandlers Creek Reverse','Noorinbee Ridge Ascent','Taylor Farm Sprint','Bondi Forest','Noorinbee Ridge Descent'],
+  'Écosse':['South Morningside','South Morningside Reverse','Old Butterstone Mir','Rosebank Farm','Rosebank Farm Reverse','Old Butterstone Mir Reverse','Newhouse Bridge','Newhouse Bridge Reverse','Glencastle Farm','Annbank Station','Annbank Station Reverse','Glencastle Farm Reverse'],
+  'Espagne':['Comienzo De Bellrui','Final de Bellriu','Ascenso por Valle el Gualet','Vinedos dentro del valle Parra','Ascenso bosque Montverd','Salida desde Montverd','Centenera','Camino a Centenera','Descenso por carretera','Vinedos Dardenyà','Vinedos Dardenyà inversa','Subira por carretera'],
+  'Finlande':['Kontinjärvi','Hämelahti','Kailajärvi','Jyrkysjärvi','Naarajärvi','Paskuri','Kakaristo','Pitkäjärvi','Iso Oksjärvi','Järvenkylä','Kotajärvi','Oksala'],
+  'Allemagne':['Oberstein','Frauenberg','Waldaufstieg','Kreuzungsring Reverse','Kreuzungsring','Waldabstieg','Hammerstein','Ruschberg','Verbundsring','Innerer Feld-Sprint','Innerer Feld-Sprint (umgekehrt)','Verbundsring Reverse'],
+  'Grèce':['Anodou Farmakas','Kathodo Leontiou','Pomona Ekrixi','Fourkéta Kourva','Koryfi Dafni','Ampelonas Ormi','Perasma Platini','Tsiristra Théa','Ourea Spevsi','Pedines Epidaxi','Abies Koilada','Ypsona tou Dasos'],
+  'Monte-Carlo':['Pra d\'Alart','Col de Turini - Départ','Gordolon - Courte montée','Col de Turini - Sprint en descente','Col de Turini - Sprint en montée','Col de Turini - Descente','Vallée descendante','Route de Turini','Col de Turini - Départ en descente','Approche de Turini - Montée','Route de Turini - Descente','Route de Turini Montée'],
+  'Nouvelle-Zélande':['Te Awanga Forward','Ocean Beach','Te Awanga Sprint Forward','Ocean Beach Sprint Forward','Ocean Beach Sprint Reverse','Te Awanga Sprint Reverse','Waimarama Point Forward','Waimarama Point Reverse','Elsthorpe Sprint Forward','Waimarama Sprint Forward','Waimarama Sprint Reverse','Elsthorpe Sprint Reverse'],
+  'Pays de Galles':['Sweet Lamb','Geufron Forest','Pant Mawr','Bidno Moorland Reverse','Bidno Moorland','Pant Mawr Reverse','River Severn Valley','Bronfelen','Fferm Wynt','Dyffryn Afon Reverse','Dyffryn Afon','Fferm Wynt Reverse'],
+  'Pologne':['Zarobka','Zargorze','Kopina','Marynka','Borysik','Jozefin','Jezioro Rotcze','Zienki','Czarny Las','Lejno','Jagodno','Jezioro Lukie'],
+  'Suède':['Ransbysäter','Norraaskoga','Älgsjön Sprint','Stor-jangen Sprint Reverse','Sprint de Stor-jangen','Skogsrallyt','Hamra','Lysvik','Elgsjön','Björklangen','Östra Hinnsjön','Älgsjön'],
+  'USA':['North Fork Pass','North Fork Pass Reverse','Hancock Creek Burst','Fuller Mountain Descent','Fuller Mountain Ascent','Fury Lake Depart','Beaver Creek Trail Forward','Beaver Creek Trail Reverse','Hancock Hill Sprint Forward','Tolt Valley Sprint Reverse','Tolt Valley Sprint Forward','Hancock Hill Sprint Reverse']
+};
+const CARS_BY_CLASS={
+  'H1':['MINI Cooper S','Lancia Fulvia HF','Citroën DS21'],
+  'H2 FWD':['Peugeot 205 GTI','Volkswagen Golf GTI 16V'],
+  'H2 RWD':['Ford Escort Mk II','Fiat 131 Abarth Rally','Opel Kadett C GT/E','Alpine Renault A110 1600 S'],
+  'H3':['BMW E30 M3 Evo Rally','Lancia Stratos','Opel Ascona 400','Renault 5 Turbo','Ford Sierra Cosworth RS500','Datsun 240Z'],
+  'F2 Kit Car':['Volkswagen Golf Kit Car','Seat Ibiza Kit Car','Renault Clio RS S1600','Opel Corsa Super 1600','Peugeot 306 Maxi Kit Car'],
+  'Groupe B RWD':['Opel Manta 400','BMW 02 27 RWD'],
+  'Groupe B AWD':['Audi Sport Quattro S1 E2','MG Metro 6R4','Peugeot 205 T16 Evo 2','Lancia Delta S4','Ford RS200'],
+  'R2':['Ford Fiesta R2','Opel Adam R2','Peugeot 208 R2'],
+  'Groupe A':['Subaru Impreza 1995','Mitsubishi Lancer Evolution VI','Ford Escort RS Cosworth','Lancia Delta HF Integrale','Subaru Legacy RS'],
+  'NR4/R4':['Mitsubishi Lancer Evolution X','Subaru WRX STI NR4'],
+  '4WD jusqu\'à 2000':['Ford Focus RS WRC 2001','Ford Focus RS WRC 2007','Subaru Impreza WRC 2001','Subaru Impreza WRC 2008','Subaru Impreza S4 1997','Peugeot 206 WRC 2002','Škoda Fabia WRC 2005','Citroën C4 Rally'],
+  'R5':['Citroën C3 R5','Volkswagen Polo GTI R5','Ford Fiesta R5','Ford Fiesta R5 MkII','Peugeot 208 T16 R5','Škoda Fabia R5','Mitsubishi Space Star R5'],
+  'Rally GT':['Porsche 911 RGT Rally Spec','Chevrolet Camaro GT4.R','Ford Mustang GT4','Aston Martin V8 Vantage GT4','BMW M2 Competition']
+};
+const FLAGS={'Argentine':'🇦🇷','Australie':'🇦🇺','Finlande':'🇫🇮','Allemagne':'🇩🇪','Grèce':'🇬🇷','Monte-Carlo':'🇲🇨','Nouvelle-Zélande':'🇳🇿','Pologne':'🇵🇱','Espagne':'🇪🇸','Suède':'🇸🇪','USA':'🇺🇸','Pays de Galles':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Écosse':'🏴󠁧󠁢󠁳󠁣󠁴󠁿'};
+const POINTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
+const AVATAR_COLORS=[
+  {bg:'#1c3a6e',text:'#7aadee'},{bg:'#3a1c1c',text:'#ee7a7a'},{bg:'#1c3a2a',text:'#7aeea8'},
+  {bg:'#3a2e1c',text:'#eea87a'},{bg:'#2a1c3a',text:'#aa7aee'},{bg:'#1c3a38',text:'#7aeee8'},
+  {bg:'#3a1c30',text:'#ee7ac8'},{bg:'#2a2a1c',text:'#d0d07a'},{bg:'#1c2a3a',text:'#7ab0ee'},{bg:'#3a2a1c',text:'#eec07a'}
+];
+
+// ── UTILS ──
+let allTimes=[], currentUser=null, pinBuffer='', regPinBuffer='';
+
+function getAvatarColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))&0xff;return AVATAR_COLORS[h%AVATAR_COLORS.length];}
+function getInitials(n){const w=n.trim().split(/\s+/);return w.length>=2?(w[0][0]+w[w.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+function formatTime(ms){const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),mil=ms%1000;return`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(mil).padStart(3,'0')}`;}
+function parseTime(mm,ss,mil){return(parseInt(mm)||0)*60000+(parseInt(ss)||0)*1000+(parseInt(mil)||0);}
+function formatDelta(ms){return ms<=0?'—':'+'+(ms/1000).toFixed(3);}
+function formatDate(iso){return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function getCarClass(cls){return{'R5':'class-r5','WRC':'class-wrc','Groupe B AWD':'class-grpb','Groupe B RWD':'class-grpb','R2':'class-r2'}[cls]||'class-other';}
+async function hashPin(pin){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pin));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function getBestTimes(times){const best={};(times||allTimes).forEach(t=>{const key=`${t.pseudo}||${t.special}||${t.class}||${t.car}`;if(!best[key]||t.time<best[key].time)best[key]=t;});return Object.values(best);}
+function setAvatar(el,pseudo){const col=getAvatarColor(pseudo);el.style.background=col.bg;el.style.color=col.text;el.textContent=getInitials(pseudo);}
+
+// ── PIN KEYPAD ──
+function buildKeypad(containerId, onInput, onDelete){
+  const keys=[[1,'',],[2,'ABC'],[3,'DEF'],[4,'GHI'],[5,'JKL'],[6,'MNO'],[7,'PQRS'],[8,'TUV'],[9,'WXYZ'],['',''],[ 0,'+'],[null,'⌫']];
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  keys.forEach(([num,letters])=>{
+    const div=document.createElement('div');
+    if(num===null){
+      div.className='key key-del';
+      div.innerHTML=`<div class="key-num">⌫</div>`;
+      div.onclick=onDelete;
+    } else if(num===''){
+      div.className='key';
+      div.style.visibility='hidden';
+    } else {
+      div.className='key';
+      div.innerHTML=`<div class="key-num">${num}</div>${letters?`<div class="key-letters">${letters}</div>`:''}`;
+      div.onclick=()=>onInput(String(num));
+    }
+    el.appendChild(div);
+  });
+}
+
+function updatePinDots(prefix, buf, len=4){
+  for(let i=0;i<len;i++){
+    const d=document.getElementById(`${prefix}${i}`);
+    if(d) d.classList.toggle('filled',i<buf.length);
+  }
+}
+
+// ── LOCK SCREEN ──
+async function initLockScreen(){
+  const {data}=await db.from('pilotes').select('pseudo,flag').order('pseudo');
+  const list=document.getElementById('pseudo-list-lock');
+  list.innerHTML='';
+  if(!data||!data.length){
+    list.innerHTML='<div style="color:var(--text3);font-size:13px;">Aucun pilote enregistré.<br>Crée ton compte !</div>';
+    return;
+  }
+  data.forEach(p=>{
+    const col=getAvatarColor(p.pseudo);
+    const btn=document.createElement('button');
+    btn.style.cssText=`display:flex;align-items:center;gap:12px;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:background .1s;`;
+    btn.innerHTML=`<div style="width:38px;height:38px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;">${getInitials(p.pseudo)}</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--text);">${p.flag} ${p.pseudo}</div>`;
+    btn.onclick=()=>showPinEntry(p.pseudo,p.flag);
+    list.appendChild(btn);
+  });
+}
+
+function showPinEntry(pseudo,flag){
+  document.getElementById('lock-choose-pseudo').style.display='none';
+  document.getElementById('lock-register').style.display='none';
+  document.getElementById('lock-pin').style.display='block';
+  const col=getAvatarColor(pseudo);
+  const av=document.getElementById('lock-avatar');
+  av.style.background=col.bg; av.style.color=col.text; av.textContent=getInitials(pseudo);
+  document.getElementById('lock-pseudo-name').textContent=`${flag} ${pseudo}`;
+  document.getElementById('lock-error').textContent='';
+  pinBuffer='';
+  updatePinDots('d',pinBuffer);
+  buildKeypad('pin-keypad',
+    (d)=>{if(pinBuffer.length<4){pinBuffer+=d;updatePinDots('d',pinBuffer);if(pinBuffer.length===4)verifyPin(pseudo);}},
+    ()=>{if(pinBuffer.length>0){pinBuffer=pinBuffer.slice(0,-1);updatePinDots('d',pinBuffer);document.getElementById('lock-error').textContent='';}}
+  );
+  window._pinPseudo=pseudo; window._pinFlag=flag;
+}
+
+async function verifyPin(pseudo){
+  const hash=await hashPin(pinBuffer);
+  const{data}=await db.from('pilotes').select('pin_hash,flag').eq('pseudo',pseudo).single();
+  if(data&&data.pin_hash===hash){
+    currentUser={pseudo,flag:data.flag};
+    unlockApp();
+  } else {
+    document.getElementById('lock-error').textContent='PIN incorrect, réessaie.';
+    pinBuffer='';
+    updatePinDots('d',pinBuffer);
+  }
+}
+
+function backToChoose(){
+  pinBuffer=''; regPinBuffer='';
+  document.getElementById('lock-pin').style.display='none';
+  document.getElementById('lock-register').style.display='none';
+  document.getElementById('lock-choose-pseudo').style.display='block';
+}
+
+function showRegister(){
+  document.getElementById('lock-choose-pseudo').style.display='none';
+  document.getElementById('lock-register').style.display='block';
+  regPinBuffer='';
+  updatePinDots('rd',regPinBuffer);
+  buildKeypad('reg-keypad',
+    (d)=>{if(regPinBuffer.length<4){regPinBuffer+=d;updatePinDots('rd',regPinBuffer);}},
+    ()=>{if(regPinBuffer.length>0){regPinBuffer=regPinBuffer.slice(0,-1);updatePinDots('rd',regPinBuffer);}}
+  );
+}
+
+async function registerPilot(){
+  const pseudo=document.getElementById('reg-pseudo').value.trim();
+  const flag=document.getElementById('reg-flag').value;
+  const errEl=document.getElementById('reg-error');
+  if(!pseudo){errEl.textContent='Entre un pseudo.';errEl.style.display='block';return;}
+  if(regPinBuffer.length!==4){errEl.textContent='Choisis un PIN à 4 chiffres.';errEl.style.display='block';return;}
+  const btn=document.getElementById('reg-btn');
+  btn.disabled=true; btn.textContent='Création…';
+  const hash=await hashPin(regPinBuffer);
+  const{error}=await db.from('pilotes').insert([{pseudo,flag,pin_hash:hash}]);
+  if(error){errEl.textContent=error.code==='23505'?'Ce pseudo est déjà pris.':'Erreur : '+error.message;errEl.style.display='block';btn.disabled=false;btn.textContent='Créer mon compte';return;}
+  currentUser={pseudo,flag};
+  unlockApp();
+}
+
+function unlockApp(){
+  document.getElementById('screen-lock').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  const av=document.getElementById('app-avatar');
+  setAvatar(av,currentUser.pseudo);
+  document.getElementById('app-pseudo').textContent=currentUser.pseudo;
+  loadAppData();
+}
+
+function lockApp(){
+  currentUser=null; pinBuffer=''; regPinBuffer='';
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-lock').classList.add('active');
+  document.getElementById('lock-pin').style.display='none';
+  document.getElementById('lock-register').style.display='none';
+  document.getElementById('lock-choose-pseudo').style.display='block';
+  initLockScreen();
+}
+
+// ── APP DATA ──
+async function loadAppData(){
+  const{data}=await db.from('times').select('*').order('time',{ascending:true});
+  allTimes=data||[];
+  renderHome();
+  renderRanking();
+  renderChampionnat();
+  renderProfile();
+  populateRankFilters();
+  updateAppSpeciales();
+  updateAppCars();
+}
+
+// ── HOME ──
+function renderHome(){
+  document.getElementById('home-loading').style.display='none';
+  document.getElementById('home-content').style.display='block';
+  // Derniers temps
+  const recent=[...allTimes].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const recEl=document.getElementById('home-recent');
+  recEl.innerHTML='';
+  recent.forEach(t=>{
+    const col=getAvatarColor(t.pseudo);
+    const div=document.createElement('div');
+    div.className='hl-recent-item';
+    div.innerHTML=`<div class="mini-avatar" style="background:${col.bg};color:${col.text};">${getInitials(t.pseudo)}</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${t.flag} ${t.pseudo}</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">${FLAGS[t.pays]||'🌍'} ${t.special} · <span class="car-badge ${getCarClass(t.class)}">${t.class}</span></div></div><div style="text-align:right;flex-shrink:0;"><div style="font-family:'Share Tech Mono',monospace;font-size:13px;">${formatTime(t.time)}</div><div style="font-size:10px;color:var(--text3);">${formatDate(t.date)}</div></div>`;
+    recEl.appendChild(div);
+  });
+  // Top pilotes (par victoires)
+  const bestTimes=getBestTimes();
+  const bySpecialCls={};
+  bestTimes.forEach(t=>{const key=`${t.special}||${t.class}`;if(!bySpecialCls[key]||t.time<bySpecialCls[key].time)bySpecialCls[key]=t;});
+  const wins={};
+  Object.values(bySpecialCls).forEach(t=>{if(!wins[t.pseudo])wins[t.pseudo]={flag:t.flag,w:0};wins[t.pseudo].w++;});
+  const topEl=document.getElementById('home-top');
+  topEl.innerHTML='';
+  Object.entries(wins).sort((a,b)=>b[1].w-a[1].w).slice(0,3).forEach(([pseudo,data],i)=>{
+    const col=getAvatarColor(pseudo);
+    const rankClass=['gold','silver','bronze'][i];
+    const div=document.createElement('div');
+    div.className=`rank-entry ${rankClass}`;
+    div.innerHTML=`<div class="rank-num">${i+1}</div><div class="mini-avatar" style="background:${col.bg};color:${col.text};">${getInitials(pseudo)}</div><div class="entry-info"><div class="entry-name"><span>${data.flag}</span>${pseudo}</div></div><div style="color:var(--gold);font-family:'Share Tech Mono',monospace;font-size:13px;">${data.w} 🏆</div>`;
+    topEl.appendChild(div);
+  });
+}
+
+// ── RANKING ──
+function populateRankFilters(){
+  const countries=[...new Set(allTimes.map(t=>t.pays))].sort();
+  const specials=[...new Set(allTimes.map(t=>t.special))].sort();
+  const selC=document.getElementById('rank-country'),selS=document.getElementById('rank-special');
+  selC.innerHTML='<option value="">🌍 Tous les pays</option>';
+  countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;selC.appendChild(o);});
+  selS.innerHTML='<option value="">📍 Toutes les spéciales</option>';
+  specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;selS.appendChild(o);});
+}
+
+function renderRanking(){
+  let times=getBestTimes();
+  const c=document.getElementById('rank-country').value;
+  const s=document.getElementById('rank-special').value;
+  const cl=document.getElementById('rank-class').value;
+  if(c)times=times.filter(t=>t.pays===c);
+  if(s)times=times.filter(t=>t.special===s);
+  if(cl)times=times.filter(t=>t.class===cl);
+  const content=document.getElementById('rank-content');
+  content.innerHTML='';
+  if(!times.length){content.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);">Aucun temps pour ces filtres.</div>';return;}
+  // Grouper par spéciale+classe
+  const groups={};
+  times.forEach(t=>{const key=`${t.special}||${t.class}`;if(!groups[key])groups[key]={special:t.special,class:t.class,pays:t.pays,times:[]};groups[key].times.push(t);});
+  Object.values(groups).sort((a,b)=>a.special.localeCompare(b.special)).forEach(g=>{
+    const sorted=g.times.sort((a,b)=>a.time-b.time);
+    const best=sorted[0].time;
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`<div class="card-header"><div><div class="card-title">${FLAGS[g.pays]||'🌍'} ${g.special}</div><div class="card-sub"><span class="car-badge ${getCarClass(g.class)}">${g.class}</span></div></div></div>`;
+    sorted.forEach((t,i)=>{
+      const col=getAvatarColor(t.pseudo);
+      const rk=['gold','silver','bronze'][i]||'';
+      const delta=i===0?'—':formatDelta(t.time-best);
+      const row=document.createElement('div');
+      row.className=`rank-entry ${rk}`;
+      row.innerHTML=`<div class="rank-num">${i+1}</div><div class="mini-avatar" style="background:${col.bg};color:${col.text};">${getInitials(t.pseudo)}</div><div class="entry-info"><div class="entry-name"><span>${t.flag}</span>${t.pseudo}</div><div class="entry-sub">${t.car}</div></div><div class="entry-time"><div class="entry-time-val">${formatTime(t.time)}</div><div class="entry-delta">${delta}</div></div>`;
+      card.appendChild(row);
+    });
+    content.appendChild(card);
+  });
+}
+
+// ── CHAMPIONNAT ──
+function computeChamp(){
+  const bestTimes=getBestTimes();
+  const groups={};
+  bestTimes.forEach(t=>{const key=`${t.special}||${t.class}`;if(!groups[key])groups[key]=[];groups[key].push(t);});
+  const pilots={};
+  Object.values(groups).forEach(times=>{
+    const byPilot={};
+    times.forEach(t=>{if(!byPilot[t.pseudo]||t.time<byPilot[t.pseudo].time)byPilot[t.pseudo]=t;});
+    Object.values(byPilot).sort((a,b)=>a.time-b.time).forEach((t,i)=>{
+      if(!pilots[t.pseudo])pilots[t.pseudo]={pseudo:t.pseudo,flag:t.flag,pts:0,wins:0,podiums:0};
+      const p=pilots[t.pseudo];
+      p.pts+=POINTS_SCALE[i]||0;
+      if(i===0)p.wins++;
+      if(i<3)p.podiums++;
+    });
+  });
+  return Object.values(pilots).sort((a,b)=>b.pts-a.pts);
+}
+
+function renderChampionnat(){
+  const loading=document.getElementById('champ-loading');
+  const content=document.getElementById('champ-content');
+  if(!allTimes.length){loading.style.display='none';return;}
+  loading.style.display='none'; content.style.display='block';
+  const ranking=computeChamp();
+  // Podium
+  const pod=document.getElementById('m-podium');
+  pod.innerHTML='';
+  const top3=ranking.slice(0,3);
+  const order=top3.length>=3?[top3[1],top3[0],top3[2]]:top3.length===2?[top3[0],top3[1]]:[top3[0]];
+  const pCls=top3.length>=3?['p2','p1','p3']:['p1','p2'];
+  const pLbl=top3.length>=3?['2','1','3']:['1','2'];
+  order.forEach((w,i)=>{
+    const col=getAvatarColor(w.pseudo);
+    const slot=document.createElement('div');
+    slot.className=`m-pod-slot ${pCls[i]}`;
+    slot.innerHTML=`<div class="m-pod-avatar" style="background:${col.bg};color:${col.text};">${getInitials(w.pseudo)}</div><div class="m-pod-name">${w.flag} ${w.pseudo}</div><div class="m-pod-pts">${w.pts} pts</div><div class="m-pod-bar"><div class="m-pod-rank">${pLbl[i]}</div></div>`;
+    pod.appendChild(slot);
+  });
+  // Liste
+  const list=document.getElementById('champ-list');
+  list.innerHTML='';
+  const maxPts=ranking[0]?.pts||1;
+  ranking.forEach((p,i)=>{
+    const col=getAvatarColor(p.pseudo);
+    const rk=['gold','silver','bronze'][i]||'';
+    const pct=Math.round((p.pts/maxPts)*100);
+    const div=document.createElement('div');
+    div.className=`rank-entry ${rk}`;
+    div.innerHTML=`<div class="rank-num">${i+1}</div><div class="mini-avatar" style="background:${col.bg};color:${col.text};">${getInitials(p.pseudo)}</div><div class="entry-info"><div class="entry-name"><span>${p.flag}</span>${p.pseudo}</div><div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:2px;"></div></div></div><div style="text-align:right;flex-shrink:0;"><div style="font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--gold);">${p.pts}</div><div style="font-size:10px;color:var(--text3);">${p.wins}🏆 ${p.podiums}🥈</div></div>`;
+    list.appendChild(div);
+  });
+}
+
+// ── SUBMIT ──
+function updateAppSpeciales(){
+  const pays=document.getElementById('s-rallye').value;
+  const sel=document.getElementById('s-special');
+  sel.innerHTML='';
+  (SPECIALES[pays]||[]).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+}
+function updateAppCars(){
+  const cls=document.getElementById('s-class').value;
+  const sel=document.getElementById('s-car');
+  sel.innerHTML='';
+  (CARS_BY_CLASS[cls]||[]).forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+}
+
+async function appSubmitTime(){
+  const pays=document.getElementById('s-rallye').value;
+  const special=document.getElementById('s-special').value;
+  const cls=document.getElementById('s-class').value;
+  const car=document.getElementById('s-car').value;
+  const mm=document.getElementById('s-mm').value,ss=document.getElementById('s-ss').value,ms=document.getElementById('s-ms').value;
+  const time=parseTime(mm,ss,ms);
+  const okEl=document.getElementById('app-msg-ok'),errEl=document.getElementById('app-msg-err');
+  okEl.style.display='none'; errEl.style.display='none';
+  if(!car||!time||!special){errEl.textContent='Remplis tous les champs.';errEl.style.display='block';return;}
+  const btn=document.getElementById('app-submit-btn');
+  btn.disabled=true; btn.textContent='Envoi…';
+  const{error}=await db.from('times').insert([{pseudo:currentUser.pseudo,flag:currentUser.flag,pays,special,class:cls,car,time}]);
+  btn.disabled=false; btn.textContent='+ Soumettre ce temps';
+  if(error){errEl.textContent='Erreur : '+error.message;errEl.style.display='block';return;}
+  okEl.style.display='block';
+  document.getElementById('s-mm').value='';document.getElementById('s-ss').value='';document.getElementById('s-ms').value='';
+  await loadAppData();
+  setTimeout(()=>{okEl.style.display='none';},3000);
+}
+
+// ── PROFIL ──
+function renderProfile(){
+  if(!currentUser)return;
+  const myTimes=allTimes.filter(t=>t.pseudo===currentUser.pseudo);
+  const bestTimes=getBestTimes().filter(t=>t.pseudo===currentUser.pseudo);
+  const ranking=computeChamp();
+  const me=ranking.find(p=>p.pseudo===currentUser.pseudo);
+  const rank=ranking.findIndex(p=>p.pseudo===currentUser.pseudo)+1;
+  const col=getAvatarColor(currentUser.pseudo);
+  const content=document.getElementById('profile-content');
+  content.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;padding:1rem;border-bottom:1px solid var(--border);margin-bottom:6px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;">${getInitials(currentUser.pseudo)}</div>
+      <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:1px;">${currentUser.flag} ${currentUser.pseudo}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${rank>0?`#${rank} au championnat`:'Pas encore classé'}</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="s-pill g"><div class="s-val">${me?.pts||0}</div><div class="s-lbl">Points</div></div>
+      <div class="s-pill"><div class="s-val">${me?.wins||0}</div><div class="s-lbl">Victoires</div></div>
+      <div class="s-pill"><div class="s-val">${me?.podiums||0}</div><div class="s-lbl">Podiums</div></div>
+      <div class="s-pill r"><div class="s-val">${myTimes.length}</div><div class="s-lbl">Essais</div></div>
+      <div class="s-pill gr"><div class="s-val">${bestTimes.length}</div><div class="s-lbl">Spéciales</div></div>
+    </div>
+    <div class="section-label">Mes meilleurs temps</div>
+    ${bestTimes.sort((a,b)=>a.special.localeCompare(b.special)).map(t=>`
+      <div class="rank-entry">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${FLAGS[t.pays]||'🌍'} ${t.special}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px;">${t.car} · <span class="car-badge ${getCarClass(t.class)}">${t.class}</span></div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:14px;">${formatTime(t.time)}</div>
+      </div>`).join('')}
+  `;
+}
+
+// ── NAV ──
+function switchAppTab(tab, el){
+  document.querySelectorAll('.bottom-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`pane-${tab}`).classList.add('active');
+  if(tab==='profile')renderProfile();
+}
+
+// ── INIT ──
+initLockScreen();
+db.channel('app-changes').on('postgres_changes',{event:'*',schema:'public',table:'times'},()=>{if(currentUser)loadAppData();}).subscribe();
+</script>
+</body>
+</html>
