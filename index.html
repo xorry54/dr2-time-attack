@@ -1150,7 +1150,7 @@ async function submitTime(){
   const pays=document.getElementById('inp-rallye').value;
   const special=document.getElementById('inp-special').value;
   const cls=document.getElementById('inp-class').value;
-  const car=document.getElementById('inp-car').value.trim();
+  const car=document.getElementById('inp-car').value;
   const mm=document.getElementById('inp-mm').value,ss=document.getElementById('inp-ss').value,ms=document.getElementById('inp-ms').value;
   const time=parseTime(mm,ss,ms);
   if(!pseudo||!car||!time||!special){alert('Remplis tous les champs.');return;}
