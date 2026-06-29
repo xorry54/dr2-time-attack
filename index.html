@@ -229,15 +229,15 @@
     .btn-primary{padding:7px 10px;font-size:12px;}
     .btn-secondary{padding:7px 8px;font-size:11px;}
     /* Classement podium — réduit */
-    #podium{flex-direction:row!important;align-items:flex-end;gap:6px;}
-    #podium .podium-slot{max-width:33%;flex-direction:column;}
-    #podium .podium-avatar{width:36px;height:36px;font-size:12px;}
-    #podium .podium-name{font-size:10px;}
-    #podium .podium-time{font-size:10px;}
-    #podium .podium-bar-rank{font-size:16px;}
-    #podium .podium-slot.p1 .podium-bar{height:56px;}
-    #podium .podium-slot.p2 .podium-bar{height:40px;}
-    #podium .podium-slot.p3 .podium-bar{height:28px;}
+    #podium{flex-direction:row!important;align-items:flex-end;gap:4px;padding:0 4px;}
+    #podium .podium-slot{max-width:33%;min-width:0;flex-direction:column;}
+    #podium .podium-avatar{width:30px;height:30px;font-size:10px;border-width:1px;}
+    #podium .podium-name{font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #podium .podium-time{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+    #podium .podium-bar-rank{font-size:14px;}
+    #podium .podium-slot.p1 .podium-bar{height:48px;}
+    #podium .podium-slot.p2 .podium-bar{height:34px;}
+    #podium .podium-slot.p3 .podium-bar{height:24px;}
     /* Leaderboard — cacher colonnes non essentielles sur mobile */
     .leaderboard thead th:nth-child(3),
     .leaderboard tbody td:nth-child(3),
