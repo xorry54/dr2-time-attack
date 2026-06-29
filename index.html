@@ -253,10 +253,16 @@
     .car-badge{white-space:nowrap;font-size:9px;padding:1px 5px;}
     /* Nom voiture — pas de majuscules forcées, tronqué */
     .player-car{text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
-    /* Championnat podium */
-    .champ-podium .podium{flex-direction:row;align-items:flex-end;}
-    .champ-podium .podium-slot{flex-direction:column;max-width:33%;}
-    .champ-podium .podium-bar{width:100%;height:auto!important;}
+    /* Championnat podium — même style réduit que classement */
+    #champ-podium{flex-direction:row!important;align-items:flex-end;gap:6px;}
+    #champ-podium .podium-slot{max-width:33%;flex-direction:column;}
+    #champ-podium .podium-avatar{width:36px;height:36px;font-size:12px;}
+    #champ-podium .podium-name{font-size:10px;}
+    #champ-podium .podium-time{font-size:10px;}
+    #champ-podium .podium-bar-rank{font-size:16px;}
+    #champ-podium .podium-slot.p1 .podium-bar{height:56px;}
+    #champ-podium .podium-slot.p2 .podium-bar{height:40px;}
+    #champ-podium .podium-slot.p3 .podium-bar{height:28px;}
     /* Pilotes les plus actifs grid */
     #pilot-podiums-grid{grid-template-columns:1fr!important;}
     /* Stats pilote */
