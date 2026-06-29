@@ -1020,9 +1020,9 @@ function renderLeaderboard(){
   const cls=document.getElementById('filter-class').value;
   document.getElementById('leaderboard-flag').textContent=country?(FLAGS[country]||'🌍'):'🏁';
   document.getElementById('leaderboard-name').textContent=special?special:(country||'Classement général')+(cls?` — ${cls}`:'');
-  const empty=document.getElementById('empty-state'),table=document.getElementById('leaderboard-table');
-  if(!filtered.length){empty.style.display='block';table.style.display='none';document.getElementById('podium-section').style.display='none';return;}
-  empty.style.display='none';table.style.display='table';
+  const empty=document.getElementById('empty-state'),table=document.getElementById('leaderboard-table'),mobile=document.getElementById('leaderboard-mobile');
+  if(!filtered.length){empty.style.display='block';table.style.display='none';mobile.style.display='none';document.getElementById('podium-section').style.display='none';return;}
+  empty.style.display='none';table.style.display='table';mobile.style.display='block';
 
   // Podium : pilotes avec le plus de 1ères places par spéciale+classe
   const podSec=document.getElementById('podium-section');
@@ -1130,8 +1130,8 @@ function renderLeaderboard(){
   }
 
   // ── VERSION MOBILE (cards) ──
-  const mobile=document.getElementById('leaderboard-mobile');
-  mobile.innerHTML='';
+  const mobileEl=document.getElementById('leaderboard-mobile');
+  mobileEl.innerHTML='';
   // Grouper par spéciale+classe
   const mGroups={};
   filtered.forEach(t=>{
@@ -1167,7 +1167,7 @@ function renderLeaderboard(){
         </div>`;
       }).join('')}
     `;
-    mobile.appendChild(block);
+    mobileEl.appendChild(block);
   });
 }
 
