@@ -228,16 +228,16 @@
     .header-actions{gap:6px;}
     .btn-primary{padding:7px 10px;font-size:12px;}
     .btn-secondary{padding:7px 8px;font-size:11px;}
-    /* Podium — horizontal mais plus petit */
-    .podium{flex-direction:row;align-items:flex-end;gap:6px;}
-    .podium-slot{max-width:33%;}
-    .podium-avatar{width:36px;height:36px;font-size:12px;}
-    .podium-name{font-size:10px;}
-    .podium-time{font-size:10px;}
-    .podium-bar-rank{font-size:16px;}
-    .podium-slot.p1 .podium-bar{height:56px;}
-    .podium-slot.p2 .podium-bar{height:40px;}
-    .podium-slot.p3 .podium-bar{height:28px;}
+    /* Classement podium — réduit */
+    #podium{flex-direction:row!important;align-items:flex-end;gap:6px;}
+    #podium .podium-slot{max-width:33%;flex-direction:column;}
+    #podium .podium-avatar{width:36px;height:36px;font-size:12px;}
+    #podium .podium-name{font-size:10px;}
+    #podium .podium-time{font-size:10px;}
+    #podium .podium-bar-rank{font-size:16px;}
+    #podium .podium-slot.p1 .podium-bar{height:56px;}
+    #podium .podium-slot.p2 .podium-bar{height:40px;}
+    #podium .podium-slot.p3 .podium-bar{height:28px;}
     /* Leaderboard — cacher colonnes non essentielles sur mobile */
     .leaderboard thead th:nth-child(3),
     .leaderboard tbody td:nth-child(3),
@@ -549,9 +549,10 @@
         <div class="content-title"><span>📈</span><span>Historique de progression</span></div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-bottom:1.25rem;">
+      <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn-secondary hist-mode-btn active" id="mode-btn-pilote" onclick="setHistMode('pilote')" style="border-color:var(--red);color:var(--red);">Par pilote</button>
         <button class="btn-secondary hist-mode-btn" id="mode-btn-special" onclick="setHistMode('special')">Par spéciale</button>
+        <button class="btn-secondary hist-mode-btn" id="mode-btn-date" onclick="setHistMode('date')">🕐 Fil d'actu</button>
       </div>
 
       <!-- Mode pilote -->
@@ -581,6 +582,27 @@
             <label class="form-label">Pilote (optionnel)</label>
             <select class="form-select" id="hist-select-special-pilote" onchange="renderHistorique()">
               <option value="">Tous les pilotes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode fil d'actu -->
+      <div id="hist-mode-date" style="display:none;">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1.25rem;">
+          <div class="form-group">
+            <label class="form-label">Pilote (optionnel)</label>
+            <select class="form-select" id="hist-select-date-pilote" onchange="renderHistorique()">
+              <option value="">Tous les pilotes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre à afficher</label>
+            <select class="form-select" id="hist-select-date-limit" onchange="renderHistorique()">
+              <option value="20">20 derniers</option>
+              <option value="50">50 derniers</option>
+              <option value="100">100 derniers</option>
+              <option value="0">Tous</option>
             </select>
           </div>
         </div>
@@ -1442,8 +1464,10 @@ function setHistMode(mode){
   histMode=mode;
   document.getElementById('mode-btn-pilote').classList.toggle('active',mode==='pilote');
   document.getElementById('mode-btn-special').classList.toggle('active',mode==='special');
+  document.getElementById('mode-btn-date').classList.toggle('active',mode==='date');
   document.getElementById('hist-mode-pilote').style.display=mode==='pilote'?'block':'none';
   document.getElementById('hist-mode-special').style.display=mode==='special'?'block':'none';
+  document.getElementById('hist-mode-date').style.display=mode==='date'?'block':'none';
   renderHistorique();
 }
 
@@ -1462,6 +1486,13 @@ function populateHistoriqueSelectors(){
   selSpecial.innerHTML='';
   specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;selSpecial.appendChild(o);});
   if(specials.includes(curS))selSpecial.value=curS;
+
+  // Fil d'actu — pilotes
+  const selDatePilote=document.getElementById('hist-select-date-pilote');
+  const curDP=selDatePilote.value;
+  selDatePilote.innerHTML='<option value="">Tous les pilotes</option>';
+  pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selDatePilote.appendChild(o);});
+  if(pseudos.includes(curDP))selDatePilote.value=curDP;
 
   updateHistSpecialsForPilote();
   updateHistPilotesForSpecial();
@@ -1525,6 +1556,37 @@ function renderHistorique(){
   const content=document.getElementById('hist-content');
   const empty=document.getElementById('hist-empty');
   content.innerHTML='';
+
+  if(histMode==='date'){
+    const pilotFilter=document.getElementById('hist-select-date-pilote').value;
+    const limit=parseInt(document.getElementById('hist-select-date-limit').value)||0;
+    let times=[...allTimes];
+    if(pilotFilter) times=times.filter(t=>t.pseudo===pilotFilter);
+    times.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(limit>0) times=times.slice(0,limit);
+    if(!times.length){empty.style.display='block';return;}
+    empty.style.display='none';
+    const col=getAvatarColor;
+    content.innerHTML='<div class="hist-timeline">'
+      +times.map(t=>{
+        const c=getAvatarColor(t.pseudo);
+        return`<div class="hist-item" style="border-left-color:${c.bg};">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+            <div class="avatar" style="background:${c.bg};color:${c.text};width:28px;height:28px;font-size:10px;flex-shrink:0;">${getInitials(t.pseudo)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;"><span>${t.flag}</span>${t.pseudo}</div>
+              <div class="hist-meta-line">${FLAGS[t.pays]||'🌍'} ${t.special} · ${t.car} · <span class="car-badge ${getCarClass(t.class)}">${t.class}</span></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:8px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:14px;">${formatTime(t.time)}</div>
+            <div class="hist-date">${formatDate(t.date)}</div>
+          </div>
+        </div>`;
+      }).join('')
+      +'</div>';
+    return;
+  }
 
   if(histMode==='pilote'){
     const pseudo=document.getElementById('hist-select-pilote').value;
