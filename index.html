@@ -218,15 +218,60 @@
     .sidebar{border-right:none;border-bottom:1px solid var(--border);}
     .form-grid{grid-template-columns:1fr;}
     .highlights-grid{grid-template-columns:1fr;}
-    .leaderboard thead th:nth-child(3),.leaderboard tbody td:nth-child(3){display:none;}
+    /* Nav */
     .main-nav{padding:0;overflow-x:hidden;}
     .nav-item{flex:1;padding:9px 4px;font-size:9px;letter-spacing:0.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+    /* Header */
     .site-header{padding:0 0.75rem;flex-wrap:wrap;}
     .brand-title{font-size:17px;}
     .brand-sub{font-size:8px;}
     .header-actions{gap:6px;}
     .btn-primary{padding:7px 10px;font-size:12px;}
     .btn-secondary{padding:7px 8px;font-size:11px;}
+    /* Podium — horizontal mais plus petit */
+    .podium{flex-direction:row;align-items:flex-end;gap:6px;}
+    .podium-slot{max-width:33%;}
+    .podium-avatar{width:36px;height:36px;font-size:12px;}
+    .podium-name{font-size:10px;}
+    .podium-time{font-size:10px;}
+    .podium-bar-rank{font-size:16px;}
+    .podium-slot.p1 .podium-bar{height:56px;}
+    .podium-slot.p2 .podium-bar{height:40px;}
+    .podium-slot.p3 .podium-bar{height:28px;}
+    /* Leaderboard — cacher colonnes non essentielles sur mobile */
+    .leaderboard thead th:nth-child(3),
+    .leaderboard tbody td:nth-child(3),
+    .leaderboard thead th:nth-child(5),
+    .leaderboard tbody td:nth-child(5),
+    .leaderboard thead th:nth-child(7),
+    .leaderboard tbody td:nth-child(7),
+    .leaderboard thead th:nth-child(8),
+    .leaderboard tbody td:nth-child(8){display:none;}
+    .leaderboard{font-size:12px;}
+    .time-val{font-size:13px;}
+    /* Badge classe — pas de retour à la ligne */
+    .car-badge{white-space:nowrap;font-size:9px;padding:1px 5px;}
+    /* Nom voiture — pas de majuscules forcées, tronqué */
+    .player-car{text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+    /* Championnat podium */
+    .champ-podium .podium{flex-direction:row;align-items:flex-end;}
+    .champ-podium .podium-slot{flex-direction:column;max-width:33%;}
+    .champ-podium .podium-bar{width:100%;height:auto!important;}
+    /* Pilotes les plus actifs grid */
+    #pilot-podiums-grid{grid-template-columns:1fr!important;}
+    /* Stats pilote */
+    .stat-pill{min-width:60px;padding:8px 8px;}
+    .stat-pill-val{font-size:16px;}
+    /* Champ tableau */
+    #champ-table thead th:nth-child(4),
+    #champ-table tbody td:nth-child(4),
+    #champ-table thead th:nth-child(5),
+    #champ-table tbody td:nth-child(5),
+    #champ-table thead th:nth-child(7),
+    #champ-table tbody td:nth-child(7){display:none;}
+    .champ-pts{font-size:15px;}
+    /* Contenu principal */
+    .main-content{padding:0.75rem;}
   }  /* CHAMPIONNAT */
   .champ-pts{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;color:var(--gold);text-align:right;}
   .champ-bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;}
