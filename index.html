@@ -317,6 +317,27 @@
   .hist-delta-tag.improve{background:rgba(40,160,90,.15);color:var(--green);}
   .hist-delta-tag.worse{background:rgba(200,50,50,.15);color:#e07070;}
   .hist-meta-line{font-size:11px;color:var(--text3);margin-top:1px;}
+  /* CLASSEMENT UNIFIÉ */
+  .cl-view-btn.active{border-color:var(--red)!important;color:var(--red)!important;background:rgba(226,48,48,.08);}
+  .accordion-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
+  .accordion-item.open{border-color:var(--border2);}
+  .accordion-header{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;background:var(--bg2);transition:background .1s;user-select:none;}
+  .accordion-header:hover{background:var(--bg3);}
+  .accordion-arrow{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
+  .accordion-item.open .accordion-arrow{transform:rotate(90deg);}
+  .accordion-leader{flex:1;min-width:0;}
+  .accordion-leader-name{font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .accordion-leader-time{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text2);}
+  .accordion-special{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .accordion-country{font-size:11px;color:var(--text3);margin-top:1px;}
+  .accordion-body{display:none;border-top:1px solid var(--border);}
+  .accordion-item.open .accordion-body{display:block;}
+  .accordion-class-header{background:var(--bg4);padding:5px 14px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px;}
+  .accordion-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);}
+  .accordion-row:last-child{border-bottom:none;}
+  .accordion-row.gold{border-left:3px solid var(--gold);}
+  .accordion-row.silver{border-left:3px solid var(--silver);}
+  .accordion-row.bronze{border-left:3px solid var(--bronze);}
 
 </style>
 </head>
@@ -343,7 +364,6 @@
 <!-- NAV -->
 <nav class="main-nav">
   <div class="nav-item active" onclick="switchTab('highlights',this)">✦ Highlights</div>
-  <div class="nav-item" onclick="switchTab('championnat',this)">🏆 Championnat</div>
   <div class="nav-item" onclick="switchTab('classement',this)">Classement</div>
   <div class="nav-item" onclick="switchTab('speciales',this)">Spéciales</div>
   <div class="nav-item" onclick="switchTab('pilotes',this)">Pilotes</div>
@@ -455,78 +475,86 @@
     </div>
 
     <!-- ══ TAB CLASSEMENT ══ -->
+    <!-- ══ TAB CLASSEMENT (fusionné avec Championnat) ══ -->
     <div class="tab-content" id="tab-classement">
-      <div class="content-header">
-        <div class="content-title">
-          <span id="leaderboard-flag">🏁</span>
-          <span id="leaderboard-name">Classement général</span>
-        </div>
-        <button class="btn-secondary" onclick="loadData()">↻ Actualiser</button>
-      </div>
-      <div id="podium-section" style="display:none;margin-bottom:1.5rem;">
-        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium</div><div class="eyebrow-line"></div></div>
-        <div class="podium" id="podium"></div>
-      </div>
-      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Tous les temps</div><div class="eyebrow-line"></div></div>
-      <div id="leaderboard-loading" class="loading"><div class="spinner"></div>Chargement…</div>
-      <table class="leaderboard" id="leaderboard-table" style="display:none;">
-        <thead><tr>
-          <th>#</th><th>Pilote</th><th>Voiture</th><th>Classe</th><th>Spéciale</th>
-          <th class="right">Temps</th><th class="right">Écart</th><th class="right">Date</th>
-        </tr></thead>
-        <tbody id="leaderboard-body"></tbody>
-      </table>
-      <div id="leaderboard-mobile" style="display:none;"></div>
-      <div id="empty-state" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
-        <div style="font-size:40px;margin-bottom:12px;">🏁</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps pour ces filtres</div>
-        <button class="btn-primary" style="margin:1rem auto 0;display:flex;" onclick="openSubmitModal()">+ Soumettre un temps</button>
-      </div>
-    </div>
 
-    <!-- ══ TAB SPÉCIALES ══ -->
-    <div class="tab-content" id="tab-speciales">
-      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Toutes les spéciales</div><div class="eyebrow-line"></div></div>
-      <div class="special-cards" id="speciales-grid"></div>
-      <div id="speciales-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
-        <div style="font-size:36px;margin-bottom:10px;">📍</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucune spéciale enregistrée</div>
+      <!-- Switcher vue -->
+      <div style="display:flex;gap:8px;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
+        <button class="btn-secondary cl-view-btn active" id="view-btn-champ" onclick="setClassementView('champ')">🏆 Championnat</button>
+        <button class="btn-secondary cl-view-btn" id="view-btn-detail" onclick="setClassementView('detail')">🔍 Détail</button>
+        <button class="btn-secondary" style="margin-left:auto;" onclick="loadData()">↻</button>
       </div>
-    </div>
 
-    <!-- ══ TAB CHAMPIONNAT ══ -->
-    <div class="tab-content" id="tab-championnat">
-      <div class="content-header">
-        <div class="content-title"><span>🏆</span><span>Championnat général</span></div>
-        <div style="font-size:12px;color:var(--text3);">Points : 25·18·15·12·10·8·6·4·2·1 par spéciale+classe</div>
-      </div>
-      <div id="champ-loading" class="loading"><div class="spinner"></div>Calcul des points…</div>
-      <div id="champ-content" style="display:none;">
-        <!-- Podium championnat -->
-        <div id="champ-podium-section" style="margin-bottom:1.5rem;">
-          <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium général</div><div class="eyebrow-line"></div></div>
-          <div class="podium" id="champ-podium"></div>
+      <!-- ── VUE CHAMPIONNAT ── -->
+      <div id="cl-view-champ">
+        <div id="champ-loading" class="loading"><div class="spinner"></div>Calcul des points…</div>
+        <div id="champ-content" style="display:none;">
+          <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium général · Points 25·18·15·12·10·8·6·4·2·1</div><div class="eyebrow-line"></div></div>
+          <div class="podium" id="champ-podium" style="margin-bottom:1.5rem;"></div>
+          <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Classement par points</div><div class="eyebrow-line"></div></div>
+          <table class="leaderboard" id="champ-table">
+            <thead><tr>
+              <th>#</th><th>Pilote</th>
+              <th class="right">Points</th>
+              <th class="right">Victoires</th>
+              <th class="right">Podiums</th>
+              <th class="right">Épreuves</th>
+              <th class="right">Moy.</th>
+            </tr></thead>
+            <tbody id="champ-body"></tbody>
+          </table>
+          <div style="margin-top:1.5rem;">
+            <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Spéciales — cliquer pour développer</div><div class="eyebrow-line"></div></div>
+            <div id="cl-accordion"></div>
+          </div>
         </div>
-        <!-- Tableau des points -->
-        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Classement complet</div><div class="eyebrow-line"></div></div>
-        <table class="leaderboard" id="champ-table">
+        <div id="champ-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+          <div style="font-size:40px;margin-bottom:12px;">🏆</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps enregistré</div>
+        </div>
+      </div>
+
+      <!-- ── VUE DÉTAIL ── -->
+      <div id="cl-view-detail" style="display:none;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;">
+          <select class="filter-select" id="filter-country" onchange="applyFilters()" style="flex:1;min-width:140px;">
+            <option value="">🌍 Tous les pays</option>
+          </select>
+          <select class="filter-select" id="filter-special" onchange="applyFilters()" style="flex:1;min-width:140px;">
+            <option value="">📍 Toutes les spéciales</option>
+          </select>
+          <select class="filter-select" id="filter-class" onchange="applyFilters()" style="flex:1;min-width:140px;">
+            <option value="">🚗 Toutes les classes</option>
+            <option value="H1">H1</option><option value="H2 FWD">H2 FWD</option>
+            <option value="H2 RWD">H2 RWD</option><option value="H3">H3</option>
+            <option value="F2 Kit Car">F2 Kit Car</option><option value="Groupe B RWD">Groupe B RWD</option>
+            <option value="Groupe B AWD">Groupe B AWD</option><option value="R2">R2</option>
+            <option value="Groupe A">Groupe A</option><option value="NR4/R4">NR4/R4</option>
+            <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+            <option value="R5">R5</option><option value="Rally GT">Rally GT</option>
+          </select>
+        </div>
+        <div id="podium-section" style="display:none;margin-bottom:1.5rem;">
+          <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium</div><div class="eyebrow-line"></div></div>
+          <div class="podium" id="podium"></div>
+        </div>
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Tous les temps</div><div class="eyebrow-line"></div></div>
+        <div id="leaderboard-loading" class="loading"><div class="spinner"></div>Chargement…</div>
+        <table class="leaderboard" id="leaderboard-table" style="display:none;">
           <thead><tr>
-            <th>#</th><th>Pilote</th>
-            <th class="right">Points</th>
-            <th class="right">Victoires</th>
-            <th class="right">Podiums</th>
-            <th class="right">Épreuves</th>
-            <th class="right">Moy. pts</th>
+            <th>#</th><th>Pilote</th><th>Voiture</th><th>Classe</th><th>Spéciale</th>
+            <th class="right">Temps</th><th class="right">Écart</th><th class="right">Date</th>
           </tr></thead>
-          <tbody id="champ-body"></tbody>
+          <tbody id="leaderboard-body"></tbody>
         </table>
-        <!-- Détail par classe -->
-        <div style="margin-top:1.5rem;" id="champ-by-class"></div>
+        <div id="leaderboard-mobile" style="display:none;"></div>
+        <div id="empty-state" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+          <div style="font-size:40px;margin-bottom:12px;">🏁</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps pour ces filtres</div>
+          <button class="btn-primary" style="margin:1rem auto 0;display:flex;" onclick="openSubmitModal()">+ Soumettre un temps</button>
+        </div>
       </div>
-      <div id="champ-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
-        <div style="font-size:40px;margin-bottom:12px;">🏆</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucun temps enregistré</div>
-      </div>
+
     </div>
 
     <!-- ══ TAB PILOTES ══ -->
@@ -1227,10 +1255,9 @@ function switchTab(tab,el){
   (el||document.querySelector('.nav-item')).classList.add('active');
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  // Masquer sidebar + grille sur Highlights et Historique, afficher ailleurs
   const sidebar=document.getElementById('main-sidebar');
   const layout=document.getElementById('main-layout');
-  if(tab==='highlights'||tab==='historique'||tab==='championnat'){
+  if(tab==='highlights'||tab==='historique'||tab==='classement'){
     sidebar.style.display='none';
     layout.style.gridTemplateColumns='1fr';
   } else {
@@ -1238,6 +1265,7 @@ function switchTab(tab,el){
     layout.style.gridTemplateColumns='';
   }
   if(tab==='historique') renderHistorique();
+  if(tab==='classement'){renderChampionnat();renderLeaderboard();}
 }
 
 function updateSpecialesInModal(){
@@ -1409,33 +1437,77 @@ function renderChampionnat(){
     tbody.appendChild(tr);
   });
 
-  // Classement par classe
-  const byClass=document.getElementById('champ-by-class');
-  byClass.innerHTML='<div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Points par classe</div><div class="eyebrow-line"></div></div>';
-  const allClasses=[...new Set(ranking.flatMap(p=>Object.keys(p.ptsByClass)))].sort();
-  allClasses.forEach(cls=>{
-    const clsRanking=ranking.filter(p=>p.ptsByClass[cls]).sort((a,b)=>(b.ptsByClass[cls]||0)-(a.ptsByClass[cls]||0));
-    if(!clsRanking.length)return;
-    const maxC=clsRanking[0].ptsByClass[cls]||1;
-    const section=document.createElement('div');
-    section.className='champ-class-section';
-    section.innerHTML=`<div class="champ-class-header"><span class="car-badge ${getCarClass(cls)}">${cls}</span></div>
-      ${clsRanking.map((p,i)=>{
-        const col=getAvatarColor(p.pseudo);
-        const pts=p.ptsByClass[cls]||0;
-        const pct=Math.round((pts/maxC)*100);
-        return`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
-          <div style="min-width:22px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
-          <div class="avatar" style="background:${col.bg};color:${col.text};width:28px;height:28px;font-size:11px;">${getInitials(p.pseudo)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;">${p.flag} ${p.pseudo}</div>
-            <div class="champ-bar-track" style="margin-top:3px;"><div class="champ-bar-fill" style="width:${pct}%"></div></div>
-          </div>
-          <div class="pts-badge">${pts} pts</div>
-        </div>`;
-      }).join('')}`;
-    byClass.appendChild(section);
+  // Accordéon des spéciales
+  const accordion=document.getElementById('cl-accordion');
+  accordion.innerHTML='';
+  const bestTimes=getBestTimes();
+  const bySpecial={};
+  bestTimes.forEach(t=>{
+    if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,byClass:{}};
+    if(!bySpecial[t.special].byClass[t.class])bySpecial[t.special].byClass[t.class]=[];
+    bySpecial[t.special].byClass[t.class].push(t);
   });
+  Object.entries(bySpecial).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([special,data])=>{
+    // Leader global de la spéciale (meilleur temps toutes classes)
+    const allSpecTimes=Object.values(data.byClass).flat().sort((a,b)=>a.time-b.time);
+    const leader=allSpecTimes[0];
+    const leaderCol=getAvatarColor(leader.pseudo);
+    const item=document.createElement('div');
+    item.className='accordion-item';
+    item.innerHTML=`
+      <div class="accordion-header" onclick="toggleAccordion(this.parentElement)">
+        <span class="accordion-arrow">▶</span>
+        <div style="flex:1;min-width:0;">
+          <div class="accordion-special">${FLAGS[data.pays]||'🌍'} ${special}</div>
+          <div class="accordion-country">${data.pays} · ${Object.keys(data.byClass).length} classe${Object.keys(data.byClass).length>1?'s':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <div style="width:26px;height:26px;border-radius:50%;background:${leaderCol.bg};color:${leaderCol.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;">${getInitials(leader.pseudo)}</div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:500;">${leader.flag} ${leader.pseudo}</div>
+            <div class="accordion-leader-time">${formatTime(leader.time)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-body">
+        ${Object.entries(data.byClass).sort((a,b)=>a[0].localeCompare(b[0])).map(([cls,times])=>{
+          const sorted=times.sort((a,b)=>a.time-b.time);
+          const best=sorted[0].time;
+          return`<div class="accordion-class-header"><span class="car-badge ${getCarClass(cls)}">${cls}</span></div>
+          ${sorted.map((t,i)=>{
+            const col=getAvatarColor(t.pseudo);
+            const rk=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+            const delta=i===0?'—':formatDelta(t.time-best);
+            return`<div class="accordion-row ${rk}">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;min-width:22px;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;">${getInitials(t.pseudo)}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px;overflow:hidden;"><span>${t.flag}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.pseudo}</span></div>
+                <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.car}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-family:'Share Tech Mono',monospace;font-size:13px;">${formatTime(t.time)}</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:${i>0?'#e07070':'var(--text3)'};">${delta}</div>
+              </div>
+            </div>`;
+          }).join('')}`;
+        }).join('')}
+      </div>
+    `;
+    accordion.appendChild(item);
+  });
+}
+
+function toggleAccordion(item){
+  item.classList.toggle('open');
+}
+
+function setClassementView(view){
+  document.getElementById('cl-view-champ').style.display=view==='champ'?'block':'none';
+  document.getElementById('cl-view-detail').style.display=view==='detail'?'block':'none';
+  document.getElementById('view-btn-champ').classList.toggle('active',view==='champ');
+  document.getElementById('view-btn-detail').classList.toggle('active',view==='detail');
+  if(view==='detail') renderLeaderboard();
 }
 
 // ═══ STATS PILOTE ═══
