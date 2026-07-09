@@ -338,6 +338,15 @@
   .accordion-row.gold{border-left:3px solid var(--gold);}
   .accordion-row.silver{border-left:3px solid var(--silver);}
   .accordion-row.bronze{border-left:3px solid var(--bronze);}
+  /* COMPACT FILTER */
+  .compact-filter{padding:0 0 10px;}
+  .compact-filter-row{display:flex;gap:8px;align-items:center;}
+  .compact-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;flex:1;min-width:0;}
+  .compact-select:focus{outline:none;border-color:var(--red);}
+  .compact-select option{background:var(--bg3);}
+  .compact-filter-toggle{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);padding:7px 10px;font-size:12px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
+  .compact-filter-toggle:hover{border-color:var(--border2);color:var(--text);}
+  .compact-filter-extra{margin-top:6px;}
 
 </style>
 </head>
@@ -559,8 +568,45 @@
 
     <!-- ══ TAB PILOTES ══ -->
     <div class="tab-content" id="tab-pilotes">
+      <div class="compact-filter">
+        <div class="compact-filter-row">
+          <select class="compact-select" id="filter-pilotes-pays" onchange="renderPilotes()">
+            <option value="">🌍 Tous les pays</option>
+          </select>
+        </div>
+      </div>
       <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Pilotes de la communauté</div><div class="eyebrow-line"></div></div>
       <div class="pilots-grid" id="pilots-grid"></div>
+    </div>
+
+    <!-- ══ TAB SPÉCIALES ══ -->
+    <div class="tab-content" id="tab-speciales">
+      <div class="compact-filter">
+        <div class="compact-filter-row">
+          <select class="compact-select" id="filter-speciales-pays" onchange="renderSpeciales()">
+            <option value="">🌍 Tous les pays</option>
+          </select>
+          <button class="compact-filter-toggle" id="speciales-toggle-btn" onclick="toggleCompactFilter('speciales-extra')">⚙</button>
+        </div>
+        <div class="compact-filter-extra" id="speciales-extra" style="display:none;">
+          <select class="compact-select" id="filter-speciales-class" onchange="renderSpeciales()">
+            <option value="">🚗 Toutes les classes</option>
+            <option value="H1">H1</option><option value="H2 FWD">H2 FWD</option>
+            <option value="H2 RWD">H2 RWD</option><option value="H3">H3</option>
+            <option value="F2 Kit Car">F2 Kit Car</option><option value="Groupe B RWD">Groupe B RWD</option>
+            <option value="Groupe B AWD">Groupe B AWD</option><option value="R2">R2</option>
+            <option value="Groupe A">Groupe A</option><option value="NR4/R4">NR4/R4</option>
+            <option value="4WD jusqu'à 2000">4WD jusqu'à 2000</option>
+            <option value="R5">R5</option><option value="Rally GT">Rally GT</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Toutes les spéciales</div><div class="eyebrow-line"></div></div>
+      <div class="special-cards" id="speciales-grid"></div>
+      <div id="speciales-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
+        <div style="font-size:36px;margin-bottom:10px;">📍</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucune spéciale enregistrée</div>
+      </div>
     </div>
 
     <!-- Modal stats pilote -->
@@ -1203,19 +1249,44 @@ function renderSpeciales(){
   const grid=document.getElementById('speciales-grid'),empty=document.getElementById('speciales-empty');
   grid.innerHTML='';
   const bestTimes=getBestTimes();
+  const paysFilter=document.getElementById('filter-speciales-pays')?.value||'';
+  const classFilter=document.getElementById('filter-speciales-class')?.value||'';
+
+  // Peupler le select pays si vide
+  const selPays=document.getElementById('filter-speciales-pays');
+  if(selPays&&selPays.options.length<=1){
+    const pays=[...new Set(bestTimes.map(t=>t.pays))].sort();
+    pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
+    if(paysFilter)selPays.value=paysFilter;
+  }
+
   const bySpecial={};
-  bestTimes.forEach(t=>{if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,times:[]};bySpecial[t.special].times.push(t);});
+  bestTimes.forEach(t=>{
+    if(paysFilter&&t.pays!==paysFilter)return;
+    if(classFilter&&t.class!==classFilter)return;
+    if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,times:[]};
+    bySpecial[t.special].times.push(t);
+  });
   const entries=Object.entries(bySpecial);
   if(!entries.length){empty.style.display='block';return;}
   empty.style.display='none';
-  entries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([special,data])=>{
+  // Tri : 1. pays alphabétique, 2. nom de spéciale alphabétique
+  entries.sort((a,b)=>{
+    const pc=a[1].pays.localeCompare(b[1].pays);
+    return pc!==0?pc:a[0].localeCompare(b[0]);
+  }).forEach(([special,data])=>{
     const sorted=data.times.sort((a,b)=>a.time-b.time),best=sorted[0];
     const surface=SURFACES[data.pays]||'Gravière';
     const nbPilotes=new Set(data.times.map(t=>t.pseudo)).size;
     const card=document.createElement('div');
     card.className='special-card';
     card.innerHTML=`<div class="special-card-flag">${FLAGS[data.pays]||'🌍'}</div><div class="special-card-name">${special}</div><div class="special-card-country">${data.pays}</div><div class="special-card-meta"><span>${surface}</span><span>${nbPilotes} pilote${nbPilotes>1?'s':''}</span></div>${best?`<div class="special-record"><span>${formatTime(best.time)}</span><span class="special-record-label">par ${best.pseudo}</span></div>`:''}`;
-    card.onclick=()=>{document.getElementById('filter-special').value=special;switchTab('classement',document.querySelector('.nav-item+.nav-item'));applyFilters();};
+    card.onclick=()=>{
+      setClassementView('detail');
+      switchTab('classement',document.querySelector('.nav-item+.nav-item'));
+      document.getElementById('filter-special').value=special;
+      applyFilters();
+    };
     grid.appendChild(card);
   });
 }
@@ -1224,21 +1295,42 @@ function renderPilotes(){
   const grid=document.getElementById('pilots-grid');
   grid.innerHTML='';
   const bestTimes=getBestTimes();
-  // Nombre réel de temps soumis (activité) reste sur allTimes
+  const paysFilter=document.getElementById('filter-pilotes-pays')?.value||'';
+
+  // Peupler le select pays si vide
+  const selPays=document.getElementById('filter-pilotes-pays');
+  if(selPays&&selPays.options.length<=1){
+    const pays=[...new Set(allTimes.map(t=>t.pays))].sort();
+    pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
+    if(paysFilter)selPays.value=paysFilter;
+  }
+
   const activityCount={};
   allTimes.forEach(t=>{activityCount[t.pseudo]=(activityCount[t.pseudo]||0)+1;});
   const byPilot={};
-  bestTimes.forEach(t=>{if(!byPilot[t.pseudo])byPilot[t.pseudo]={flag:t.flag,times:[]};byPilot[t.pseudo].times.push(t);});
+  bestTimes.forEach(t=>{
+    if(paysFilter){
+      // Filtrer par pilotes ayant des temps dans ce pays
+      if(!bestTimes.some(x=>x.pseudo===t.pseudo&&x.pays===paysFilter))return;
+    }
+    if(!byPilot[t.pseudo])byPilot[t.pseudo]={flag:t.flag,times:[]};
+    byPilot[t.pseudo].times.push(t);
+  });
   Object.entries(byPilot).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([pseudo,data])=>{
     const col=getAvatarColor(pseudo);
     const wins=data.times.filter(t=>{const rivals=bestTimes.filter(x=>x.special===t.special&&x.class===t.class);return rivals.sort((a,b)=>a.time-b.time)[0]?.pseudo===pseudo;}).length;
     const card=document.createElement('div');
     card.className='pilot-card';
     card.innerHTML=`<div class="pilot-card-avatar" style="background:${col.bg};color:${col.text};">${getInitials(pseudo)}</div><div class="pilot-card-name"><span>${data.flag}</span>${pseudo}</div><div class="pilot-card-stats"><div><div class="pilot-stat-val">${activityCount[pseudo]||data.times.length}</div><div class="pilot-stat-label">Temps</div></div><div><div class="pilot-stat-val">${wins}</div><div class="pilot-stat-label">Victoires</div></div></div>`;
-    card.onclick=()=>{openHistoriquePilote(pseudo);};
+    card.onclick=()=>openHistoriquePilote(pseudo);
     card.style.cursor='pointer';
     grid.appendChild(card);
   });
+}
+
+function toggleCompactFilter(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 
 function renderStats(){
@@ -1260,6 +1352,15 @@ function switchTab(tab,el){
   if(tab==='highlights'||tab==='historique'||tab==='classement'){
     sidebar.style.display='none';
     layout.style.gridTemplateColumns='1fr';
+  } else if(tab==='speciales'||tab==='pilotes'){
+    // Sur mobile, masquer la sidebar (les filtres sont inline)
+    if(window.innerWidth<=768){
+      sidebar.style.display='none';
+      layout.style.gridTemplateColumns='1fr';
+    } else {
+      sidebar.style.display='';
+      layout.style.gridTemplateColumns='';
+    }
   } else {
     sidebar.style.display='';
     layout.style.gridTemplateColumns='';
