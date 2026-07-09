@@ -1245,20 +1245,27 @@ function renderLeaderboard(){
   });
 }
 
+function populateSpecialesPaysFilter(){
+  const selPays=document.getElementById('filter-speciales-pays');
+  if(!selPays||selPays.options.length>1)return;
+  const pays=[...new Set(getBestTimes().map(t=>t.pays))].sort();
+  pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
+}
+
+function populatePilotesPaysFilter(){
+  const selPays=document.getElementById('filter-pilotes-pays');
+  if(!selPays||selPays.options.length>1)return;
+  const pays=[...new Set(allTimes.map(t=>t.pays))].sort();
+  pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
+}
+
 function renderSpeciales(){
+  populateSpecialesPaysFilter();
   const grid=document.getElementById('speciales-grid'),empty=document.getElementById('speciales-empty');
   grid.innerHTML='';
   const bestTimes=getBestTimes();
   const paysFilter=document.getElementById('filter-speciales-pays')?.value||'';
   const classFilter=document.getElementById('filter-speciales-class')?.value||'';
-
-  // Peupler le select pays si vide
-  const selPays=document.getElementById('filter-speciales-pays');
-  if(selPays&&selPays.options.length<=1){
-    const pays=[...new Set(bestTimes.map(t=>t.pays))].sort();
-    pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
-    if(paysFilter)selPays.value=paysFilter;
-  }
 
   const bySpecial={};
   bestTimes.forEach(t=>{
@@ -1292,40 +1299,32 @@ function renderSpeciales(){
 }
 
 function renderPilotes(){
+  populatePilotesPaysFilter();
   const grid=document.getElementById('pilots-grid');
   grid.innerHTML='';
   const bestTimes=getBestTimes();
   const paysFilter=document.getElementById('filter-pilotes-pays')?.value||'';
 
-  // Peupler le select pays si vide
-  const selPays=document.getElementById('filter-pilotes-pays');
-  if(selPays&&selPays.options.length<=1){
-    const pays=[...new Set(allTimes.map(t=>t.pays))].sort();
-    pays.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPays.appendChild(o);});
-    if(paysFilter)selPays.value=paysFilter;
-  }
-
   const activityCount={};
   allTimes.forEach(t=>{activityCount[t.pseudo]=(activityCount[t.pseudo]||0)+1;});
   const byPilot={};
   bestTimes.forEach(t=>{
-    if(paysFilter){
-      // Filtrer par pilotes ayant des temps dans ce pays
-      if(!bestTimes.some(x=>x.pseudo===t.pseudo&&x.pays===paysFilter))return;
-    }
     if(!byPilot[t.pseudo])byPilot[t.pseudo]={flag:t.flag,times:[]};
     byPilot[t.pseudo].times.push(t);
   });
-  Object.entries(byPilot).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([pseudo,data])=>{
-    const col=getAvatarColor(pseudo);
-    const wins=data.times.filter(t=>{const rivals=bestTimes.filter(x=>x.special===t.special&&x.class===t.class);return rivals.sort((a,b)=>a.time-b.time)[0]?.pseudo===pseudo;}).length;
-    const card=document.createElement('div');
-    card.className='pilot-card';
-    card.innerHTML=`<div class="pilot-card-avatar" style="background:${col.bg};color:${col.text};">${getInitials(pseudo)}</div><div class="pilot-card-name"><span>${data.flag}</span>${pseudo}</div><div class="pilot-card-stats"><div><div class="pilot-stat-val">${activityCount[pseudo]||data.times.length}</div><div class="pilot-stat-label">Temps</div></div><div><div class="pilot-stat-val">${wins}</div><div class="pilot-stat-label">Victoires</div></div></div>`;
-    card.onclick=()=>openHistoriquePilote(pseudo);
-    card.style.cursor='pointer';
-    grid.appendChild(card);
-  });
+  Object.entries(byPilot)
+    .filter(([pseudo,data])=>!paysFilter||data.times.some(t=>t.pays===paysFilter))
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .forEach(([pseudo,data])=>{
+      const col=getAvatarColor(pseudo);
+      const wins=data.times.filter(t=>{const rivals=bestTimes.filter(x=>x.special===t.special&&x.class===t.class);return rivals.sort((a,b)=>a.time-b.time)[0]?.pseudo===pseudo;}).length;
+      const card=document.createElement('div');
+      card.className='pilot-card';
+      card.innerHTML=`<div class="pilot-card-avatar" style="background:${col.bg};color:${col.text};">${getInitials(pseudo)}</div><div class="pilot-card-name"><span>${data.flag}</span>${pseudo}</div><div class="pilot-card-stats"><div><div class="pilot-stat-val">${activityCount[pseudo]||data.times.length}</div><div class="pilot-stat-label">Temps</div></div><div><div class="pilot-stat-val">${wins}</div><div class="pilot-stat-label">Victoires</div></div></div>`;
+      card.onclick=()=>openHistoriquePilote(pseudo);
+      card.style.cursor='pointer';
+      grid.appendChild(card);
+    });
 }
 
 function toggleCompactFilter(id){
@@ -1696,20 +1695,23 @@ function populateHistoriqueSelectors(){
   const curP=selPilote.value;
   selPilote.innerHTML='';
   pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selPilote.appendChild(o);});
-  if(pseudos.includes(curP))selPilote.value=curP;
+  // Auto-sélectionner le premier si rien de sélectionné
+  if(pseudos.includes(curP)) selPilote.value=curP;
+  else if(pseudos.length) selPilote.value=pseudos[0];
 
   const selSpecial=document.getElementById('hist-select-special');
   const curS=selSpecial.value;
   selSpecial.innerHTML='';
   specials.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;selSpecial.appendChild(o);});
-  if(specials.includes(curS))selSpecial.value=curS;
+  if(specials.includes(curS)) selSpecial.value=curS;
+  else if(specials.length) selSpecial.value=specials[0];
 
   // Fil d'actu — pilotes
   const selDatePilote=document.getElementById('hist-select-date-pilote');
   const curDP=selDatePilote.value;
   selDatePilote.innerHTML='<option value="">Tous les pilotes</option>';
   pseudos.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;selDatePilote.appendChild(o);});
-  if(pseudos.includes(curDP))selDatePilote.value=curDP;
+  if(pseudos.includes(curDP)) selDatePilote.value=curDP;
 
   updateHistSpecialsForPilote();
   updateHistPilotesForSpecial();
