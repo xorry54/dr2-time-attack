@@ -627,13 +627,13 @@
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
-        <button class="btn-secondary hist-mode-btn active" id="mode-btn-pilote" onclick="setHistMode('pilote')" style="border-color:var(--red);color:var(--red);">Par pilote</button>
+        <button class="btn-secondary hist-mode-btn" id="mode-btn-pilote" onclick="setHistMode('pilote')">Par pilote</button>
         <button class="btn-secondary hist-mode-btn" id="mode-btn-special" onclick="setHistMode('special')">Par spéciale</button>
-        <button class="btn-secondary hist-mode-btn" id="mode-btn-date" onclick="setHistMode('date')">🕐 Fil d'actu</button>
+        <button class="btn-secondary hist-mode-btn active" id="mode-btn-date" onclick="setHistMode('date')" style="border-color:var(--red);color:var(--red);">🕐 Fil d'actu</button>
       </div>
 
       <!-- Mode pilote -->
-      <div id="hist-mode-pilote">
+      <div id="hist-mode-pilote" style="display:none;">
         <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1.25rem;">
           <div class="form-group">
             <label class="form-label">Pilote</label>
@@ -665,7 +665,7 @@
       </div>
 
       <!-- Mode fil d'actu -->
-      <div id="hist-mode-date" style="display:none;">
+      <div id="hist-mode-date" style="display:block;">
         <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:1.25rem;">
           <div class="form-group">
             <label class="form-label">Pilote (optionnel)</label>
@@ -1364,8 +1364,10 @@ function switchTab(tab,el){
     sidebar.style.display='';
     layout.style.gridTemplateColumns='';
   }
-  if(tab==='historique') renderHistorique();
+  if(tab==='historique') { setHistMode('date'); renderHistorique(); }
   if(tab==='classement'){renderChampionnat();renderLeaderboard();}
+  if(tab==='speciales'){populateSpecialesPaysFilter();renderSpeciales();}
+  if(tab==='pilotes'){populatePilotesPaysFilter();renderPilotes();}
 }
 
 function updateSpecialesInModal(){
@@ -1674,7 +1676,7 @@ function openPilotStats(pseudo){
 document.getElementById('modal-pilote').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
 // ═══ HISTORIQUE ═══
-let histMode='pilote';
+let histMode='date';
 
 function setHistMode(mode){
   histMode=mode;
