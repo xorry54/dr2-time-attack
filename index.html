@@ -602,7 +602,7 @@
         </div>
       </div>
       <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Toutes les spéciales</div><div class="eyebrow-line"></div></div>
-      <div class="special-cards" id="speciales-grid"></div>
+      <div id="speciales-grid"></div>
       <div id="speciales-empty" style="display:none;text-align:center;padding:3rem;color:var(--text3);">
         <div style="font-size:36px;margin-bottom:10px;">📍</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Aucune spéciale enregistrée</div>
@@ -1267,34 +1267,73 @@ function renderSpeciales(){
   const paysFilter=document.getElementById('filter-speciales-pays')?.value||'';
   const classFilter=document.getElementById('filter-speciales-class')?.value||'';
 
+  // Grouper par spéciale
   const bySpecial={};
   bestTimes.forEach(t=>{
     if(paysFilter&&t.pays!==paysFilter)return;
     if(classFilter&&t.class!==classFilter)return;
-    if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,times:[]};
-    bySpecial[t.special].times.push(t);
+    if(!bySpecial[t.special])bySpecial[t.special]={pays:t.pays,byClass:{}};
+    if(!bySpecial[t.special].byClass[t.class])bySpecial[t.special].byClass[t.class]=[];
+    bySpecial[t.special].byClass[t.class].push(t);
   });
   const entries=Object.entries(bySpecial);
   if(!entries.length){empty.style.display='block';return;}
   empty.style.display='none';
-  // Tri : 1. pays alphabétique, 2. nom de spéciale alphabétique
+
+  // Tri : 1. pays, 2. nom spéciale
   entries.sort((a,b)=>{
     const pc=a[1].pays.localeCompare(b[1].pays);
     return pc!==0?pc:a[0].localeCompare(b[0]);
   }).forEach(([special,data])=>{
-    const sorted=data.times.sort((a,b)=>a.time-b.time),best=sorted[0];
-    const surface=SURFACES[data.pays]||'Gravière';
-    const nbPilotes=new Set(data.times.map(t=>t.pseudo)).size;
-    const card=document.createElement('div');
-    card.className='special-card';
-    card.innerHTML=`<div class="special-card-flag">${FLAGS[data.pays]||'🌍'}</div><div class="special-card-name">${special}</div><div class="special-card-country">${data.pays}</div><div class="special-card-meta"><span>${surface}</span><span>${nbPilotes} pilote${nbPilotes>1?'s':''}</span></div>${best?`<div class="special-record"><span>${formatTime(best.time)}</span><span class="special-record-label">par ${best.pseudo}</span></div>`:''}`;
-    card.onclick=()=>{
-      setClassementView('detail');
-      switchTab('classement',document.querySelector('.nav-item+.nav-item'));
-      document.getElementById('filter-special').value=special;
-      applyFilters();
-    };
-    grid.appendChild(card);
+    const pays=data.pays;
+    const allTms=Object.values(data.byClass).flat().sort((a,b)=>a.time-b.time);
+    const leader=allTms[0];
+    const leaderCol=getAvatarColor(leader.pseudo);
+    const nbClasses=Object.keys(data.byClass).length;
+
+    const item=document.createElement('div');
+    item.className='accordion-item';
+    item.innerHTML=`
+      <div class="accordion-header" onclick="toggleAccordion(this.parentElement)">
+        <span class="accordion-arrow">▶</span>
+        <div style="flex:1;min-width:0;">
+          <div class="accordion-special">${FLAGS[pays]||'🌍'} ${special}</div>
+          <div class="accordion-country">${pays} · ${SURFACES[pays]||'Gravière'} · ${nbClasses} classe${nbClasses>1?'s':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <div style="width:26px;height:26px;border-radius:50%;background:${leaderCol.bg};color:${leaderCol.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;">${getInitials(leader.pseudo)}</div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:500;">${leader.flag} ${leader.pseudo}</div>
+            <div class="accordion-leader-time">${formatTime(leader.time)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-body">
+        ${Object.entries(data.byClass).sort((a,b)=>a[0].localeCompare(b[0])).map(([cls,times])=>{
+          const sorted=[...times].sort((a,b)=>a.time-b.time);
+          const best=sorted[0].time;
+          return`<div class="accordion-class-header"><span class="car-badge ${getCarClass(cls)}">${cls}</span></div>
+          ${sorted.map((t,i)=>{
+            const col=getAvatarColor(t.pseudo);
+            const rk=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+            const delta=i===0?'—':formatDelta(t.time-best);
+            return`<div class="accordion-row ${rk}">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;min-width:22px;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;">${getInitials(t.pseudo)}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px;overflow:hidden;"><span>${t.flag}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.pseudo}</span></div>
+                <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.car}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-family:'Share Tech Mono',monospace;font-size:13px;">${formatTime(t.time)}</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:${i>0?'#e07070':'var(--text3)'};">${delta}</div>
+              </div>
+            </div>`;
+          }).join('')}`;
+        }).join('')}
+      </div>
+    `;
+    grid.appendChild(item);
   });
 }
 
