@@ -13,7 +13,6 @@
     --gold:#f0a020;--silver:#a0a0b8;--bronze:#c07040;--green:#40c080;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{overflow-x:hidden;max-width:100%;}
   body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
   /* HEADER */
@@ -330,17 +329,16 @@
   .hist-meta-line{font-size:11px;color:var(--text3);margin-top:1px;}
   /* CLASSEMENT UNIFIÉ */
   .cl-view-btn.active{border-color:var(--red)!important;color:var(--red)!important;background:rgba(226,48,48,.08);}
-  .accordion-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;max-width:100%;}
+  .accordion-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
   .accordion-item.open{border-color:var(--border2);}
-  .accordion-header{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;background:var(--bg2);transition:background .1s;user-select:none;width:100%;box-sizing:border-box;overflow:hidden;}
+  .accordion-header{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--bg2);transition:background .1s;user-select:none;}
   .accordion-header:hover{background:var(--bg3);}
-  .accordion-arrow{font-size:12px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
+  .accordion-arrow{font-size:11px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
   .accordion-item.open .accordion-arrow{transform:rotate(90deg);}
-  .accordion-special{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .accordion-country{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .accordion-right{display:flex;align-items:center;gap:6px;flex-shrink:0;width:120px;}
-  .accordion-right-info{text-align:right;min-width:0;overflow:hidden;flex:1;}
-  .accordion-right-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .accordion-left{flex:1;min-width:0;overflow:hidden;}
+  .accordion-special{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .accordion-country{font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .accordion-right{flex-shrink:0;text-align:right;}
   .accordion-right-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text2);white-space:nowrap;}
   .accordion-body{display:none;border-top:1px solid var(--border);}
   .accordion-item.open .accordion-body{display:block;}
@@ -1293,16 +1291,12 @@ function renderSpeciales(){
     item.innerHTML=`
       <div class="accordion-header" onclick="toggleAccordion(this.parentElement)">
         <span class="accordion-arrow">▶</span>
-        <div style="flex:1;min-width:0;">
+        <div class="accordion-left">
           <div class="accordion-special">${FLAGS[pays]||'🌍'} ${special}</div>
           <div class="accordion-country">${pays} · ${SURFACES[pays]||'Gravière'} · ${nbClasses} classe${nbClasses>1?'s':''}</div>
         </div>
         <div class="accordion-right">
-          <div style="width:26px;height:26px;border-radius:50%;background:${leaderCol.bg};color:${leaderCol.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;flex-shrink:0;">${getInitials(leader.pseudo)}</div>
-          <div class="accordion-right-info">
-            <div class="accordion-right-name">${leader.flag} ${leader.pseudo}</div>
-            <div class="accordion-right-time">${formatTime(leader.time)}</div>
-          </div>
+          <div class="accordion-right-time">${formatTime(leader.time)}</div>
         </div>
       </div>
       <div class="accordion-body">
@@ -1606,16 +1600,12 @@ function renderChampionnat(){
     item.innerHTML=`
       <div class="accordion-header" onclick="toggleAccordion(this.parentElement)">
         <span class="accordion-arrow">▶</span>
-        <div style="flex:1;min-width:0;">
+        <div class="accordion-left">
           <div class="accordion-special">${FLAGS[data.pays]||'🌍'} ${special}</div>
           <div class="accordion-country">${data.pays} · ${Object.keys(data.byClass).length} classe${Object.keys(data.byClass).length>1?'s':''}</div>
         </div>
         <div class="accordion-right">
-          <div style="width:26px;height:26px;border-radius:50%;background:${leaderCol.bg};color:${leaderCol.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;flex-shrink:0;">${getInitials(leader.pseudo)}</div>
-          <div class="accordion-right-info">
-            <div class="accordion-right-name">${leader.flag} ${leader.pseudo}</div>
-            <div class="accordion-right-time">${formatTime(leader.time)}</div>
-          </div>
+          <div class="accordion-right-time">${formatTime(leader.time)}</div>
         </div>
       </div>
       <div class="accordion-body">
