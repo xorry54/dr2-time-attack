@@ -519,7 +519,7 @@
 
       <div id="champ-loading" class="loading"><div class="spinner"></div>Calcul des points…</div>
       <div id="champ-content" style="display:none;">
-        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium · Points 25·18·15·12·10·8·6·4·2·1</div><div class="eyebrow-line"></div></div>
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Podium · Points 10·8·6·4·2·1</div><div class="eyebrow-line"></div></div>
         <div class="podium" id="champ-podium" style="margin-bottom:1.5rem;"></div>
         <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">Classement par points</div><div class="eyebrow-line"></div></div>
         <table class="leaderboard" id="champ-table">
@@ -753,11 +753,11 @@
       <div class="form-group full">
         <label class="form-label">Temps (MM:SS.mmm)</label>
         <div class="time-input-group">
-          <input class="time-part mm" id="inp-mm" type="number" min="0" max="99" placeholder="MM">
+          <input class="time-part mm" id="inp-mm" type="text" inputmode="numeric" maxlength="2" placeholder="MM">
           <span class="time-sep">:</span>
-          <input class="time-part ss" id="inp-ss" type="number" min="0" max="59" placeholder="SS">
+          <input class="time-part ss" id="inp-ss" type="text" inputmode="numeric" maxlength="2" placeholder="SS">
           <span class="time-sep">.</span>
-          <input class="time-part ms" id="inp-ms" type="number" min="0" max="999" placeholder="mmm">
+          <input class="time-part ms" id="inp-ms" type="text" inputmode="numeric" maxlength="3" placeholder="mmm">
         </div>
       </div>
     </div>
@@ -1479,7 +1479,7 @@ document.getElementById('modal-submit').addEventListener('click',function(e){if(
 document.getElementById('modal-admin').addEventListener('click',function(e){if(e.target===this)closeAdminPanel();});
 
 // ═══ CHAMPIONNAT ═══
-const POINTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
+const POINTS_SCALE=[10,8,6,4,2,1];
 
 function computeChampionnat(filteredTimes){
   const bestTimes=filteredTimes||getBestTimes();
@@ -1590,7 +1590,7 @@ function renderChampionnat(){
     if(!bySpecial[t.special].byClass[t.class])bySpecial[t.special].byClass[t.class]=[];
     bySpecial[t.special].byClass[t.class].push(t);
   });
-  Object.entries(bySpecial).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([special,data])=>{
+  Object.entries(bySpecial).sort((a,b)=>{const pc=a[1].pays.localeCompare(b[1].pays);return pc!==0?pc:a[0].localeCompare(b[0]);}).forEach(([special,data])=>{
     // Leader global de la spéciale (meilleur temps toutes classes)
     const allSpecTimes=Object.values(data.byClass).flat().sort((a,b)=>a.time-b.time);
     const leader=allSpecTimes[0];
@@ -1817,15 +1817,36 @@ function renderHistorique(){
     if(limit>0) times=times.slice(0,limit);
     if(!times.length){empty.style.display='block';return;}
     empty.style.display='none';
-    const col=getAvatarColor;
+
+    // Précalculer les meilleurs temps pour les étoiles
+    const bestTotal={};   // meilleur temps par spéciale (toutes classes)
+    const bestClass={};   // meilleur temps par spéciale+classe
+    const bestCar={};     // meilleur temps par spéciale+classe+voiture
+    allTimes.forEach(t=>{
+      if(!bestTotal[t.special]||t.time<bestTotal[t.special])bestTotal[t.special]=t.time;
+      const kc=`${t.special}||${t.class}`;
+      if(!bestClass[kc]||t.time<bestClass[kc])bestClass[kc]=t.time;
+      const kv=`${t.special}||${t.class}||${t.car}`;
+      if(!bestCar[kv]||t.time<bestCar[kv])bestCar[kv]=t.time;
+    });
+
     content.innerHTML='<div class="hist-timeline">'
       +times.map(t=>{
         const c=getAvatarColor(t.pseudo);
+        const kc=`${t.special}||${t.class}`;
+        const kv=`${t.special}||${t.class}||${t.car}`;
+        let star='';
+        if(t.time===bestTotal[t.special])
+          star=`<span title="Meilleur temps absolu" style="color:var(--gold);font-size:13px;">★</span>`;
+        else if(t.time===bestClass[kc])
+          star=`<span title="Meilleur temps de catégorie" style="color:var(--silver);font-size:13px;">★</span>`;
+        else if(t.time===bestCar[kv])
+          star=`<span title="Meilleur temps avec cette voiture" style="color:var(--bronze);font-size:13px;">★</span>`;
         return`<div class="hist-item" style="border-left-color:${c.bg};">
           <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
             <div class="avatar" style="background:${c.bg};color:${c.text};width:28px;height:28px;font-size:10px;flex-shrink:0;">${getInitials(t.pseudo)}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;"><span>${t.flag}</span>${t.pseudo}</div>
+              <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;"><span>${t.flag}</span>${t.pseudo}${star}</div>
               <div class="hist-meta-line">${FLAGS[t.pays]||'🌍'} ${t.special} · ${t.car} · <span class="car-badge ${getCarClass(t.class)}">${t.class}</span></div>
             </div>
           </div>
@@ -1884,6 +1905,27 @@ function renderHistorique(){
 document.getElementById('hist-select-pilote').addEventListener('change',updateHistSpecialsForPilote);
 
 db.channel('times-changes').on('postgres_changes',{event:'*',schema:'public',table:'times'},()=>loadData()).subscribe();
+
+// ── Auto-avancement champs de temps ──
+['inp-mm','inp-ss','inp-ms'].forEach((id,i,arr)=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  const maxLen=id==='inp-ms'?3:2;
+  el.addEventListener('input',()=>{
+    el.value=el.value.replace(/\D/g,'').slice(0,maxLen);
+    if(el.value.length===maxLen&&i<arr.length-1){
+      document.getElementById(arr[i+1]).focus();
+      document.getElementById(arr[i+1]).select();
+    }
+  });
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Backspace'&&el.value===''&&i>0){
+      const prev=document.getElementById(arr[i-1]);
+      prev.focus();
+      prev.setSelectionRange(prev.value.length,prev.value.length);
+    }
+  });
+});
 
 updateSpecialesInModal();
 updateCarsForClass();
