@@ -357,6 +357,20 @@
   .compact-filter-toggle{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);padding:7px 10px;font-size:12px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
   .compact-filter-toggle:hover{border-color:var(--border2);color:var(--text);}
   .compact-filter-extra{margin-top:6px;}
+  /* DÉFI DE LA SEMAINE */
+  .defi-card{background:linear-gradient(135deg,rgba(226,48,48,.12),rgba(240,160,32,.06));border:1px solid rgba(226,48,48,.35);border-radius:10px;overflow:hidden;}
+  .defi-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .defi-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;flex:1;min-width:0;}
+  .defi-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+  .defi-countdown{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold);background:rgba(240,160,32,.12);border:1px solid rgba(240,160,32,.3);border-radius:4px;padding:4px 9px;white-space:nowrap;flex-shrink:0;}
+  .defi-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);}
+  .defi-row:last-child{border-bottom:none;}
+  .defi-empty{padding:1.5rem;text-align:center;color:var(--text3);font-size:13px;}
+
+  /* GRAPHIQUE PROGRESSION */
+  .prog-chart{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .prog-chart-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:8px;}
+  .prog-svg{width:100%;height:auto;display:block;}
 
 </style>
 </head>
@@ -450,6 +464,10 @@
 
       <div id="highlights-loading" class="loading"><div class="spinner"></div>Calcul des highlights…</div>
       <div id="highlights-content" style="display:none;">
+
+        <!-- Défi de la semaine -->
+        <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">🎯 Défi de la semaine</div><div class="eyebrow-line"></div></div>
+        <div id="defi-semaine" style="margin-bottom:1.5rem;"></div>
 
         <!-- Derniers temps ajoutés -->
         <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">🕐 Derniers temps ajoutés</div><div class="eyebrow-line"></div></div>
@@ -920,6 +938,85 @@ function renderSidebar(){
   });
 }
 
+// ═══ DÉFI DE LA SEMAINE ═══
+// Tirage déterministe basé sur le numéro de semaine ISO : identique pour tous, change chaque lundi
+function getWeekInfo(){
+  const now=new Date();
+  const d=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()));
+  const day=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo=Math.ceil(((d-yearStart)/86400000+1)/7);
+  // Prochain lundi 00:00 local
+  const nextMonday=new Date(now);
+  nextMonday.setDate(now.getDate()+((8-(now.getDay()||7))%7||7));
+  nextMonday.setHours(0,0,0,0);
+  return{week:weekNo,year:d.getUTCFullYear(),nextReset:nextMonday};
+}
+
+function getDefiSemaine(){
+  const{week,year,nextReset}=getWeekInfo();
+  // Liste de toutes les paires pays/spéciale du jeu
+  const pool=[];
+  Object.entries(SPECIALES).forEach(([pays,list])=>list.forEach(sp=>pool.push({pays,special:sp})));
+  const classes=Object.keys(CARS_BY_CLASS);
+
+  // Hash du seed (mix type xorshift) pour une bonne dispersion semaine à semaine
+  function hash(n){
+    n=(n^61)^(n>>>16); n=n+(n<<3); n=n^(n>>>4);
+    n=Math.imul(n,0x27d4eb2d); n=n^(n>>>15);
+    return n>>>0;
+  }
+  const base=year*53+week;
+  const pick=pool[hash(base*2654435761)%pool.length];
+  const cls=classes[hash(base*40503+7919)%classes.length];
+  return{...pick,class:cls,week,nextReset};
+}
+
+function formatCountdown(target){
+  const diff=target-new Date();
+  if(diff<=0)return'Terminé';
+  const d=Math.floor(diff/86400000);
+  const h=Math.floor((diff%86400000)/3600000);
+  if(d>0)return`${d}j ${h}h restantes`;
+  const m=Math.floor((diff%3600000)/60000);
+  return`${h}h ${m}min restantes`;
+}
+
+function renderDefiSemaine(){
+  const el=document.getElementById('defi-semaine');
+  if(!el)return;
+  const defi=getDefiSemaine();
+  // Temps correspondant au défi
+  const entries=getBestTimes().filter(t=>t.special===defi.special&&t.class===defi.class).sort((a,b)=>a.time-b.time);
+  const best=entries[0]?.time;
+  el.innerHTML=`
+    <div class="defi-card">
+      <div class="defi-head">
+        <div style="flex:1;min-width:0;">
+          <div class="defi-title">${FLAGS[defi.pays]||'🌍'} ${defi.special}</div>
+          <div class="defi-sub">${defi.pays} · ${SURFACES[defi.pays]||'Gravière'} · <span class="car-badge ${getCarClass(defi.class)}">${defi.class}</span></div>
+        </div>
+        <div class="defi-countdown">${formatCountdown(defi.nextReset)}</div>
+      </div>
+      ${entries.length?entries.slice(0,5).map((t,i)=>{
+        const col=getAvatarColor(t.pseudo);
+        return`<div class="defi-row">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;min-width:20px;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;">${getInitials(t.pseudo)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;">${t.flag} ${t.pseudo}</div>
+            <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.car}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:13px;">${formatTime(t.time)}</div>
+            ${i>0?`<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#e07070;">${formatDelta(t.time-best)}</div>`:''}
+          </div>
+        </div>`;
+      }).join(''):`<div class="defi-empty">Personne n'a encore relevé le défi. À toi de jouer ! 🏁</div>`}
+    </div>`;
+}
+
 function renderHighlights(){
   const grid=document.getElementById('highlights-grid');
   const content=document.getElementById('highlights-content');
@@ -927,6 +1024,8 @@ function renderHighlights(){
   grid.innerHTML='';
   if(!allTimes.length){empty.style.display='block';content.style.display='none';return;}
   empty.style.display='none';content.style.display='block';
+
+  renderDefiSemaine();
 
   // ── 3 derniers temps ajoutés ──
   const derniers=[...allTimes].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -1429,6 +1528,26 @@ function openSubmitModal(){
 }
 function closeSubmitModal(){document.getElementById('modal-submit').classList.remove('open');}
 
+// ═══ GARDE-FOU DE SAISIE ═══
+// Vérifie qu'un temps n'est pas aberrant par rapport aux temps déjà enregistrés
+function checkTimeSanity(time,special,cls){
+  const refs=allTimes.filter(t=>t.special===special);
+  if(refs.length<2)return null; // pas assez de références pour juger
+  const times=refs.map(t=>t.time).sort((a,b)=>a-b);
+  const fastest=times[0];
+  const median=times[Math.floor(times.length/2)];
+
+  // Trop rapide : plus de 30% sous le meilleur temps existant
+  if(time<fastest*0.7){
+    return`Ce temps (${formatTime(time)}) est ${Math.round((1-time/fastest)*100)}% plus rapide que le record actuel de la spéciale (${formatTime(fastest)}).\n\nErreur de saisie ?`;
+  }
+  // Trop lent : plus de 3x le temps médian
+  if(time>median*3){
+    return`Ce temps (${formatTime(time)}) est plus de 3× plus lent que le temps médian de la spéciale (${formatTime(median)}).\n\nErreur de saisie ?`;
+  }
+  return null;
+}
+
 async function submitTime(){
   const pseudo=document.getElementById('inp-pseudo').value.trim();
   const flag=document.getElementById('inp-flag').value;
@@ -1439,6 +1558,11 @@ async function submitTime(){
   const mm=document.getElementById('inp-mm').value,ss=document.getElementById('inp-ss').value,ms=document.getElementById('inp-ms').value;
   const time=parseTime(mm,ss,ms);
   if(!pseudo||!car||!time||!special){alert('Remplis tous les champs.');return;}
+
+  // Garde-fou : temps aberrant ?
+  const warning=checkTimeSanity(time,special,cls);
+  if(warning&&!confirm('⚠️ '+warning+'\n\nConfirmer quand même ?'))return;
+
   const btn=document.getElementById('btn-submit');
   btn.disabled=true;btn.textContent='Envoi…';
   const{error}=await db.from('times').insert([{pseudo,flag,pays,special,class:cls,car,time}]);
@@ -1778,6 +1902,71 @@ function openHistoriquePilote(pseudo){
   renderHistorique();
 }
 
+// ═══ GRAPHIQUE DE PROGRESSION (SVG inline) ═══
+function buildProgressChart(times){
+  const pts=[...times].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(pts.length<2)return''; // pas de courbe pour un seul point
+
+  const W=600,H=140,padL=52,padR=12,padT=12,padB=22;
+  const innerW=W-padL-padR,innerH=H-padT-padB;
+  const values=pts.map(p=>p.time);
+  const min=Math.min(...values),max=Math.max(...values);
+  const range=(max-min)||1;
+  // Marge visuelle de 10% haut/bas
+  const yMin=min-range*0.1,yMax=max+range*0.1;
+  const yRange=yMax-yMin;
+
+  const x=i=>padL+(pts.length===1?innerW/2:(i/(pts.length-1))*innerW);
+  const y=v=>padT+innerH-((v-yMin)/yRange)*innerH;
+
+  // Ligne de progression
+  const line=pts.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.time).toFixed(1)}`).join(' ');
+  // Zone sous la courbe
+  const area=`${line} L${x(pts.length-1).toFixed(1)},${padT+innerH} L${x(0).toFixed(1)},${padT+innerH} Z`;
+
+  // Points : doré si nouveau record perso à cet instant
+  let running=Infinity;
+  const dots=pts.map((p,i)=>{
+    const isBest=p.time<running;
+    if(isBest)running=p.time;
+    return`<circle cx="${x(i).toFixed(1)}" cy="${y(p.time).toFixed(1)}" r="${isBest?4:3}" fill="${isBest?'#f0a020':'#5a5a78'}" stroke="#14141f" stroke-width="1.5"><title>${formatTime(p.time)} — ${formatDate(p.date)}${isBest?' (record perso)':''}</title></circle>`;
+  }).join('');
+
+  // Ligne du meilleur temps
+  const bestY=y(min);
+  const gridLines=`
+    <line x1="${padL}" y1="${bestY.toFixed(1)}" x2="${W-padR}" y2="${bestY.toFixed(1)}" stroke="#f0a020" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+innerH}" stroke="#2a2a42" stroke-width="1"/>
+    <line x1="${padL}" y1="${padT+innerH}" x2="${W-padR}" y2="${padT+innerH}" stroke="#2a2a42" stroke-width="1"/>`;
+
+  // Labels axe Y : meilleur et pire
+  const labels=`
+    <text x="${padL-6}" y="${(y(min)+3.5).toFixed(1)}" text-anchor="end" fill="#f0a020" font-family="Share Tech Mono, monospace" font-size="9">${formatTime(min)}</text>
+    <text x="${padL-6}" y="${(y(max)+3.5).toFixed(1)}" text-anchor="end" fill="#5a5a78" font-family="Share Tech Mono, monospace" font-size="9">${formatTime(max)}</text>
+    <text x="${padL}" y="${H-6}" text-anchor="start" fill="#5a5a78" font-family="Barlow, sans-serif" font-size="9">${formatDate(pts[0].date)}</text>
+    <text x="${W-padR}" y="${H-6}" text-anchor="end" fill="#5a5a78" font-family="Barlow, sans-serif" font-size="9">${formatDate(pts[pts.length-1].date)}</text>`;
+
+  const gain=pts[0].time-min;
+  const gainTxt=gain>0?`<span style="color:var(--green);font-family:'Share Tech Mono',monospace;">−${(gain/1000).toFixed(3)}s depuis le 1er essai</span>`:'';
+
+  return`<div class="prog-chart">
+    <div class="prog-chart-title">📈 Progression · ${pts.length} essais ${gainTxt?'· '+gainTxt:''}</div>
+    <svg class="prog-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e23030" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#e23030" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${gridLines}
+      <path d="${area}" fill="url(#areaGrad)"/>
+      <path d="${line}" fill="none" stroke="#e23030" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${labels}
+    </svg>
+  </div>`;
+}
+
 function renderHistTimeline(times, groupLabel, groupSub){
   // times triés chronologiquement, on calcule le record courant à chaque étape
   const sorted=[...times].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -1799,6 +1988,7 @@ function renderHistTimeline(times, groupLabel, groupSub){
   }).join('');
   return`<div class="hist-group">
     ${groupLabel?`<div class="hist-group-header"><div class="hist-group-title">${groupLabel}</div>${groupSub?`<div class="hist-group-sub">${groupSub}</div>`:''}</div>`:''}
+    ${buildProgressChart(sorted)}
     <div class="hist-timeline">${rows}</div>
   </div>`;
 }
@@ -1933,6 +2123,13 @@ updateCarsForClass();
 document.getElementById('main-sidebar').style.display='none';
 document.getElementById('main-layout').style.gridTemplateColumns='1fr';
 loadData();
+
+// Rafraîchir le compte à rebours du défi toutes les minutes
+setInterval(()=>{
+  if(document.getElementById('tab-highlights').classList.contains('active')&&allTimes.length){
+    renderDefiSemaine();
+  }
+},60000);
 </script>
 </body>
 </html>
