@@ -468,6 +468,7 @@
         <!-- Défi de la semaine -->
         <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">🎯 Défi de la semaine</div><div class="eyebrow-line"></div></div>
         <div id="defi-semaine" style="margin-bottom:1.5rem;"></div>
+        <div id="defi-classement" style="margin-bottom:1.5rem;"></div>
 
         <!-- Derniers temps ajoutés -->
         <div class="section-eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-label">🕐 Derniers temps ajoutés</div><div class="eyebrow-line"></div></div>
@@ -954,23 +955,39 @@ function getWeekInfo(){
   return{week:weekNo,year:d.getUTCFullYear(),nextReset:nextMonday};
 }
 
-function getDefiSemaine(){
-  const{week,year,nextReset}=getWeekInfo();
-  // Liste de toutes les paires pays/spéciale du jeu
+// Bornes [lundi 00:00, dimanche 23:59:59] d'une semaine ISO donnée
+function getWeekBounds(week,year){
+  const jan4=new Date(Date.UTC(year,0,4));
+  const jan4Day=jan4.getUTCDay()||7;
+  const week1Monday=new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate()-jan4Day+1);
+  const start=new Date(week1Monday);
+  start.setUTCDate(week1Monday.getUTCDate()+(week-1)*7);
+  const end=new Date(start);
+  end.setUTCDate(start.getUTCDate()+7);
+  return{start,end};
+}
+
+function hashSeed(n){
+  n=(n^61)^(n>>>16); n=n+(n<<3); n=n^(n>>>4);
+  n=Math.imul(n,0x27d4eb2d); n=n^(n>>>15);
+  return n>>>0;
+}
+
+// Calcule le défi pour une semaine/année donnée (ou la semaine courante par défaut)
+function getDefiForWeek(week,year){
   const pool=[];
   Object.entries(SPECIALES).forEach(([pays,list])=>list.forEach(sp=>pool.push({pays,special:sp})));
   const classes=Object.keys(CARS_BY_CLASS);
-
-  // Hash du seed (mix type xorshift) pour une bonne dispersion semaine à semaine
-  function hash(n){
-    n=(n^61)^(n>>>16); n=n+(n<<3); n=n^(n>>>4);
-    n=Math.imul(n,0x27d4eb2d); n=n^(n>>>15);
-    return n>>>0;
-  }
   const base=year*53+week;
-  const pick=pool[hash(base*2654435761)%pool.length];
-  const cls=classes[hash(base*40503+7919)%classes.length];
-  return{...pick,class:cls,week,nextReset};
+  const pick=pool[hashSeed(base*2654435761)%pool.length];
+  const cls=classes[hashSeed(base*40503+7919)%classes.length];
+  return{...pick,class:cls,week,year};
+}
+
+function getDefiSemaine(){
+  const{week,year,nextReset}=getWeekInfo();
+  return{...getDefiForWeek(week,year),nextReset};
 }
 
 function formatCountdown(target){
@@ -981,6 +998,77 @@ function formatCountdown(target){
   if(d>0)return`${d}j ${h}h restantes`;
   const m=Math.floor((diff%3600000)/60000);
   return`${h}h ${m}min restantes`;
+}
+
+// ═══ PALMARÈS DES DÉFIS ═══
+// Reconstruit l'historique des défis passés depuis le premier temps soumis,
+// et détermine le vainqueur de chaque semaine (le pilote au meilleur temps
+// sur la spéciale+classe du défi, parmi les temps soumis DURANT cette semaine-là).
+function computeDefiHistory(){
+  if(!allTimes.length)return{weeks:[],wins:{}};
+  const{week:curWeek,year:curYear}=getWeekInfo();
+  const firstDate=new Date(Math.min(...allTimes.map(t=>new Date(t.date).getTime())));
+  const firstWeekInfo=(()=>{
+    const d=new Date(Date.UTC(firstDate.getFullYear(),firstDate.getMonth(),firstDate.getDate()));
+    const day=d.getUTCDay()||7;
+    d.setUTCDate(d.getUTCDate()+4-day);
+    const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return{week:Math.ceil(((d-yearStart)/86400000+1)/7),year:d.getUTCFullYear()};
+  })();
+
+  const weeks=[];
+  let w=firstWeekInfo.week,y=firstWeekInfo.year;
+  let guard=0;
+  while(guard++<260){ // garde-fou : max 5 ans de semaines
+    if(y>curYear||(y===curYear&&w>curWeek))break;
+    const defi=getDefiForWeek(w,y);
+    const{start,end}=getWeekBounds(w,y);
+    const weekTimes=allTimes.filter(t=>{
+      const d=new Date(t.date);
+      return d>=start&&d<end&&t.special===defi.special&&t.class===defi.class;
+    }).sort((a,b)=>a.time-b.time);
+    weeks.push({...defi,start,end,winner:weekTimes[0]||null,participants:weekTimes.length});
+    w++;
+    if(w>53){w=1;y++;}
+  }
+
+  const wins={};
+  weeks.forEach(wk=>{
+    if(wk.winner){
+      const p=wk.winner.pseudo;
+      if(!wins[p])wins[p]={flag:wk.winner.flag,count:0};
+      wins[p].count++;
+    }
+  });
+  return{weeks,wins};
+}
+
+function renderDefiClassement(){
+  const el=document.getElementById('defi-classement');
+  if(!el)return;
+  const{weeks,wins}=computeDefiHistory();
+  const pastWeeks=weeks.filter(w=>w.winner); // semaines passées avec un vainqueur
+  const ranking=Object.entries(wins).sort((a,b)=>b[1].count-a[1].count);
+
+  if(!ranking.length){
+    el.innerHTML=`<div class="defi-empty">Aucun défi remporté pour l'instant — sois le premier ! 🏆</div>`;
+    return;
+  }
+
+  el.innerHTML=`
+    <div class="defi-card" style="margin-bottom:1rem;">
+      <div class="defi-head"><div class="defi-title">🏅 Palmarès des défis</div><div class="defi-sub" style="margin-left:auto;">${pastWeeks.length} semaine${pastWeeks.length>1?'s':''} jouée${pastWeeks.length>1?'s':''}</div></div>
+      ${ranking.map(([pseudo,data],i)=>{
+        const col=getAvatarColor(pseudo);
+        return`<div class="defi-row">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;min-width:20px;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text3)'};">${i+1}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:${col.bg};color:${col.text};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;">${getInitials(pseudo)}</div>
+          <div style="flex:1;min-width:0;font-size:13px;font-weight:500;">${data.flag} ${pseudo}</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);">${data.count} 🏆</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 function renderDefiSemaine(){
@@ -1026,6 +1114,7 @@ function renderHighlights(){
   empty.style.display='none';content.style.display='block';
 
   renderDefiSemaine();
+  renderDefiClassement();
 
   // ── 3 derniers temps ajoutés ──
   const derniers=[...allTimes].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
